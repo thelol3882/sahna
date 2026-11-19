@@ -1,0 +1,36 @@
+# Deck remote with a public link through a Cloudflare quick tunnel. Started by npm run record (remote/start.py):
+#   REMOTE_KEY=... LEAD_KEY=... docker compose -p <name> -f remote/compose.yaml up --build -d
+# OBS runs on the host: the server reaches its WebSocket server (obs-websocket, port 4455) at host.docker.internal.
+name: deck-remote
+services:
+  remote:
+    build:
+      context: ..
+      dockerfile: remote/Dockerfile
+    environment:
+      REMOTE_KEY: ${REMOTE_KEY:?set REMOTE_KEY, for example REMOTE_KEY=$(openssl rand -hex 6)}
+      LEAD_KEY: ${LEAD_KEY:-}
+      MEDIA_DIR: /app/media
+      OBS_URL: ${OBS_URL:-ws://host.docker.internal:4455}
+      OBS_PASSWORD: ${OBS_PASSWORD:-}
+      OBS_DECK_URL: ${OBS_DECK_URL:-}
+    extra_hosts:
+      # Docker Desktop has host.docker.internal already; Linux needs this line
+      - "host.docker.internal:host-gateway"
+    # on Linux the recordings folder belongs to you, not to the container user
+    user: "${REMOTE_UID:-1000}:${REMOTE_GID:-1000}"
+    volumes:
+      - ../recordings:/app/recordings
+      # media is mounted, not baked into the image (big videos stay out of the build);
+      # start.py passes the real folder from config.json "mediaDir" (default: media/)
+      - ${MEDIA_HOST_DIR:-../media}:/app/media:ro
+    ports:
+      - "127.0.0.1:${REMOTE_PORT:-8787}:8787"
+    restart: unless-stopped
+
+  tunnel:
+    image: cloudflare/cloudflared:2024.12.2
+    command: tunnel --no-autoupdate --url http://remote:8787
+    depends_on:
+      - remote
+    restart: unless-stopped

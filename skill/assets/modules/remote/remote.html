@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="theme-color" content="#0E121B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Remote</title>
+<style>
+/* Phone first, one hand, portrait: a slim status bar at the top, the text in the middle,
+   the big Next under the thumb. Two screens: Join (one tap) and Talk. Everything else is in "…". */
+:root {
+  --bg: #0E121B; --surface: #171D2A; --raise: #1F2737; --ink: #EEF1F7; --muted: #8E97AB; --faint: #5A6479; --line: #262E40;
+  --turn: #FF8A4C; --turn-ink: #1C0D04; --turn-soft: rgba(255,138,76,.12); --good: #4CC38A; --warn: #F2B544; --bad: #FF6B5E; --rec: #FF4D4D;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --size: 26px; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+html { touch-action: manipulation; -webkit-text-size-adjust: 100%; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font); -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none; -webkit-user-select: none; user-select: none; }
+button { font: inherit; color: inherit; touch-action: manipulation; cursor: pointer; border: 0; background: none; }
+button:disabled { cursor: default; }
+button:focus-visible { outline: 3px solid var(--turn); outline-offset: 2px; }
+.screen { height: 100dvh; display: flex; flex-direction: column; max-width: 560px; margin: 0 auto;
+  padding: max(10px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left)); }
+.small { font-size: 15px; color: var(--muted); }
+.link { color: var(--muted); font-size: 15px; padding: 12px 6px; text-decoration: underline; text-underline-offset: 3px; }
+
+/* who are you (only when the link has no #partN) */
+.pick { justify-content: flex-end; gap: 10px; }
+.pick h1 { font-size: 28px; margin: 0 0 4px; }
+.pick button { text-align: left; font-size: 21px; font-weight: 650; padding: 0 20px; border-radius: 18px; min-height: 64px;
+  background: var(--surface); display: flex; justify-content: space-between; align-items: center; }
+.pick button span { color: var(--faint); font: 500 14px var(--mono); }
+.pick .watch { background: transparent; border: 1px dashed var(--line); color: var(--muted); }
+
+/* Join: one tap */
+.join { justify-content: space-between; }
+.join .title { font: 600 13px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); padding-top: 8px; }
+.join .hello { display: flex; flex-direction: column; gap: 14px; }
+.join h1 { margin: 0; font-size: 40px; line-height: 1.1; font-weight: 800; letter-spacing: -.01em; }
+.join p { margin: 0; font-size: 20px; line-height: 1.45; color: var(--muted); }
+.join .err { color: var(--bad); font-size: 17px; line-height: 1.4; }
+.join .foot { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
+.join .foot .row { display: flex; justify-content: space-between; }
+.go { min-height: 96px; border-radius: 26px; background: var(--turn); color: var(--turn-ink); font-size: 28px; font-weight: 800; }
+.go:disabled { opacity: .55; }
+
+/* Talk */
+.talk { gap: 10px; }
+.top { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 15px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--good); flex: none; }
+.dot.off { background: var(--bad); animation: blink 1s infinite; }
+.dot.wait { background: var(--warn); }
+@keyframes blink { 50% { opacity: .25; } }
+.me { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 0 1 auto; min-width: 0; }
+.lv { width: 28px; height: 5px; border-radius: 3px; background: var(--line); overflow: hidden; flex: none; }
+.lv i { display: block; height: 100%; width: 0; background: var(--good); transition: width .1s; }
+.spacer { flex: 1; }
+.pill { border-radius: 999px; padding: 5px 10px; font-size: 12px; font-weight: 800; letter-spacing: .04em; white-space: nowrap; flex: none; }
+.pill.turn { background: var(--turn); color: var(--turn-ink); animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(255,138,76,.55); } 50% { box-shadow: 0 0 0 7px rgba(255,138,76,0); } }
+.pill.rec { background: var(--rec); color: #fff; font-family: var(--mono); }
+.pill.rec.bad { background: transparent; color: var(--rec); border: 1px solid var(--rec); }
+.micwarn { min-height: 52px; border-radius: 14px; background: var(--bad); color: #fff; font-size: 16px; font-weight: 750; }
+.more { width: 44px; height: 44px; border-radius: 12px; font-size: 22px; font-weight: 800; color: var(--muted); flex: none; line-height: 1; }
+.where { display: flex; justify-content: space-between; align-items: center; gap: 10px; font: 600 12px var(--mono);
+  letter-spacing: .06em; text-transform: uppercase; color: var(--faint); }
+.where span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.steps { display: flex; gap: 5px; flex: none; }
+.steps i { width: 7px; height: 7px; border-radius: 50%; background: var(--line); }
+.steps i.on { background: var(--muted); }
+.who { font-size: 17px; font-weight: 650; color: var(--muted); min-height: 24px; }
+.who.mine { color: var(--turn); font-size: 22px; font-weight: 800; }
+.who small { font-weight: 500; color: var(--faint); }
+.who.soon small { color: var(--turn); font-weight: 700; }
+.read { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-user-select: text; user-select: text; padding: 4px 0; }
+.read p { margin: 0 0 16px; line-height: 1.42; }
+.read p.mine { font-size: var(--size); font-weight: 600; color: var(--ink); border-left: 4px solid var(--turn); padding-left: 14px; }
+.read p.other { font-size: calc(var(--size) * .74); color: var(--faint); font-weight: 500; }
+.read p.watch { font-size: calc(var(--size) * .85); color: var(--ink); }
+.read p.after { font-size: calc(var(--size) * .68); color: var(--muted); }
+.read p.after b { color: var(--faint); font-weight: 700; }
+.read p.empty { font-size: 20px; color: var(--turn); font-weight: 700; }
+.hint { font-size: 15px; font-weight: 650; color: var(--turn); min-height: 0; }
+.media { border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 9px; background: var(--surface); }
+.media .line { display: flex; justify-content: space-between; gap: 8px; font: 600 14px var(--mono); color: var(--muted); }
+.media .line b { color: var(--ink); font-family: var(--font); font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.media .track { height: 5px; border-radius: 5px; background: var(--line); overflow: hidden; }
+.media .track i { display: block; height: 100%; background: var(--turn); width: 0; }
+.replay { border: 1px dashed var(--line); border-radius: 14px; min-height: 48px; font-size: 16px; font-weight: 600; color: var(--muted); }
+.bar { display: flex; gap: 10px; flex: none; }
+.back { flex: 0 0 24%; background: var(--surface); border-radius: 24px; font-size: 18px; font-weight: 700; color: var(--muted); min-height: 128px; }
+.next { flex: 1 1 auto; border-radius: 24px; min-height: 128px; font-size: 30px; font-weight: 800; background: var(--surface); color: var(--faint); transition: transform .08s, background .2s; }
+.next small { display: block; font-size: 14px; font-weight: 600; margin-top: 4px; }
+.bar.mine .next { background: var(--turn); color: var(--turn-ink); }
+.bar.mine .back { color: var(--ink); }
+.next:disabled, .back:disabled { opacity: .5; }
+.bar.mine .next:disabled { opacity: .45; }
+.next.sent { transform: scale(.97); }
+.flash { position: fixed; inset: 0; pointer-events: none; background: var(--turn); opacity: 0; z-index: 5; }
+.flash.go { animation: flash 1.2s ease-out; }
+@keyframes flash { 0% { opacity: .5; } 100% { opacity: 0; } }
+
+/* the "…" sheet: everything that is not needed to talk */
+.sheet { position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,.55); display: flex; align-items: flex-end; justify-content: center; }
+.sheet .card { width: 100%; max-width: 560px; background: var(--surface); border-radius: 24px 24px 0 0; padding: 18px 20px max(18px, env(safe-area-inset-bottom));
+  display: flex; flex-direction: column; gap: 4px; }
+.sheet .rowi { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 46px; font-size: 16px; border-bottom: 1px solid var(--line); }
+.sheet .rowi span:first-child { color: var(--muted); }
+.sheet .rowi span:last-child { font-weight: 650; text-align: right; }
+.sheet .acts { display: flex; gap: 10px; margin-top: 12px; }
+.sheet .acts button { flex: 1; min-height: 54px; border-radius: 16px; background: var(--raise); font-size: 16px; font-weight: 700; }
+.sheet .acts button:disabled { opacity: .4; }
+.sheet .close { margin-top: 10px; min-height: 54px; border-radius: 16px; background: var(--ink); color: var(--bg); font-size: 17px; font-weight: 800; }
+
+/* full-screen covers: the countdown and the "you left the page" warning */
+.cover { position: fixed; inset: 0; z-index: 30; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 28px; text-align: center; }
+.cover.count { background: #000; color: #fff; }
+.cover.count b { font-size: 180px; line-height: 1; font-weight: 800; font-variant-numeric: tabular-nums; }
+.cover.count span { font-size: 20px; color: #bbb; }
+.cover.alert { background: var(--rec); color: #fff; }
+.cover.alert h2 { margin: 0; font-size: 30px; line-height: 1.15; }
+.cover.alert p { margin: 0; font-size: 19px; line-height: 1.45; max-width: 26em; }
+.cover button { min-height: 72px; min-width: 80%; border-radius: 22px; font-size: 22px; font-weight: 800; background: #fff; color: #111; }
+@media (prefers-reduced-motion: reduce) { .next.sent { transform: none; } .flash.go { animation-duration: .01s; } .dot.off, .pill.turn { animation: none; } }
+@media (max-height: 640px) { .back, .next { min-height: 88px; } .go { min-height: 76px; } }
+</style>
+</head>
+<body>
+
+<div class="screen pick" id="pick" hidden>
+  <h1 id="pickTitle">Remote</h1>
+  <p class="small" style="margin:0 0 8px">Who are you?</p>
+  <div id="pickList" style="display:flex;flex-direction:column;gap:10px"></div>
+  <button data-part="0" class="watch" id="pickWatch">Just watch</button>
+</div>
+
+<div class="screen join" id="join" hidden>
+  <div class="title" id="joinTitle"></div>
+  <div class="hello">
+    <h1 id="joinHi">Hi</h1>
+    <p>Laptop on the call, headphones on, keep this page open.</p>
+    <div class="err" id="joinErr" hidden></div>
+  </div>
+  <div class="foot">
+    <button class="go" id="ready">I'm ready</button>
+    <div class="row"><button class="link" id="joinWho">Not you?</button><button class="link" id="noMic" hidden>Continue without microphone</button></div>
+  </div>
+</div>
+
+<div class="screen talk" id="talk" hidden>
+  <div class="top">
+    <i class="dot off" id="dot" role="status" aria-label="connecting"></i>
+    <span class="me" id="meName"></span>
+    <span class="lv" id="lvBox" hidden><i id="lv"></i></span>
+    <span class="spacer"></span>
+    <span class="pill turn" id="turnPill" hidden>YOUR TURN</span>
+    <span class="pill rec" id="recPill" hidden>● REC</span>
+    <button class="more" id="more" aria-label="Details">…</button>
+  </div>
+  <button class="micwarn" id="micWarn" hidden>Microphone stopped. Tap to turn it on</button>
+  <div class="where"><span id="where"></span><span class="steps" id="steps"></span></div>
+  <div class="who" id="who" aria-live="polite"></div>
+  <div class="read" id="read"></div>
+  <div class="hint" id="hint"></div>
+  <div class="media" id="media" hidden>
+    <div class="line"><b id="mChapter"></b><span id="mTime"></span></div>
+    <div class="track"><i id="mBar"></i></div>
+  </div>
+  <button class="replay" id="replay" hidden>Replay the intro</button>
+  <div class="bar" id="bar">
+    <button class="back" id="back" aria-label="Back one step">Back</button>
+    <button class="next" id="fwd">Next</button>
+  </div>
+</div>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="card" role="dialog" aria-label="Details">
+    <div class="rowi"><span>Microphone</span><span id="dMic"></span></div>
+    <div class="rowi"><span>Connection</span><span id="dConn"></span></div>
+    <div class="rowi"><span>Recording</span><span id="dRec"></span></div>
+    <div class="rowi"><span>Battery</span><span id="dBat"></span></div>
+    <div class="acts"><button id="aa">Text size</button><button id="change">Change speaker</button></div>
+    <button class="close" id="sheetClose">Close</button>
+  </div>
+</div>
+
+<div class="flash" id="flash"></div>
+<div class="cover count" id="count" hidden><span>Recording starts</span><b id="countN">3</b><span>Stay quiet for the beep</span></div>
+<div class="cover alert" id="alert" hidden><h2 id="alertH"></h2><p id="alertP"></p><button id="alertBtn">OK</button></div>
+
+<script>
+// Filled by server.mjs: { title, speakers: [{ part, name }], scenes: [{ id, title, speaker, part, chunks }], recording: {...} }
+const DATA = __DATA__;
+let SCENES = DATA.scenes || [];
+let SPEAKERS = DATA.speakers || [];
+const RECCFG = DATA.recording || {};
+const SIZES = [22, 26, 32];
+const key = new URLSearchParams(location.search).get("k") || "";
+const $ = (id) => document.getElementById(id);
+const store = { get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+const nameOf = (p) => (SPEAKERS.find((s) => s.part === p) || {}).name || (p ? "Part " + p : "");
+const buzz = (p) => { try { navigator.vibrate && navigator.vibrate(p); } catch {} };
+document.title = (DATA.title || "Deck") + " · remote";
+$("pickTitle").textContent = DATA.title || "Remote";
+$("joinTitle").textContent = DATA.title || "";
+
+// every step of the deck in order, to count how far away your turn is
+let FLAT = [];
+function flatten() { FLAT = []; SCENES.forEach((s, si) => (s.chunks.length ? s.chunks : [""]).forEach((_, ci) => FLAT.push({ si, ci, part: s.part }))); }
+flatten();
+
+function buildPicker() {
+  const list = $("pickList");
+  list.textContent = "";
+  for (const s of SPEAKERS) {
+    const b = document.createElement("button");
+    b.dataset.part = s.part;
+    b.append(s.name);
+    const tag = document.createElement("span"); tag.textContent = "part " + s.part; b.append(tag);
+    list.append(b);
+  }
+  document.querySelectorAll("#pick button").forEach((b) => b.onclick = () => choose(Number(b.dataset.part)));
+}
+buildPicker();
+
+const fromHash = () => location.hash === "#watch" ? 0 : Number((/^#part(\d+)$/.exec(location.hash) || [])[1] || NaN);
+let me = fromHash();
+if (Number.isNaN(me)) me = store.get("remoteMe:" + key, null);
+let state = null, deckOnline = false, sock = null, wasMine = false;
+// joined = the speaker tapped "I'm ready" on this page load (mic on, headphones and call on the laptop confirmed)
+let joined = false;
+let sizeAt = store.get("remoteSizeAt", 1);
+document.documentElement.style.setProperty("--size", SIZES[sizeAt] + "px");
+
+function choose(p) {
+  me = p; store.set("remoteMe:" + key, p);
+  history.replaceState(null, "", location.search + (p ? "#part" + p : "#watch"));
+  joined = false; wasMine = isMine(); wake(); render(); report();
+}
+function changeSpeaker() { if (recording()) return; closeSheet(); me = null; joined = false; render(); }
+$("joinWho").onclick = changeSpeaker;
+$("change").onclick = changeSpeaker;
+$("aa").onclick = () => {
+  sizeAt = (sizeAt + 1) % SIZES.length; store.set("remoteSizeAt", sizeAt);
+  document.documentElement.style.setProperty("--size", SIZES[sizeAt] + "px");
+};
+window.addEventListener("hashchange", () => { const h = fromHash(); if (!Number.isNaN(h)) choose(h); });
+
+const live = () => !!(sock && sock.readyState === 1 && deckOnline);
+// without scene notes on the server every speaker may move the deck (plain clicker)
+function isMine() {
+  if (!me || !state) return false;
+  if (!SCENES.length) return true;
+  const s = SCENES[state.index];
+  return !!s && s.part === me;
+}
+
+function para(text, cls, lead) {
+  const p = document.createElement("p");
+  if (lead) { const b = document.createElement("b"); b.textContent = lead + " "; p.append(b); }
+  p.append(text); if (cls) p.className = cls; return p;
+}
+
+/* ------------------------------------------------------------------ screens */
+
+function render() {
+  const picking = me === null || me === undefined;
+  const joining = !picking && me > 0 && !joined;
+  $("pick").hidden = !picking; $("join").hidden = !joining; $("talk").hidden = picking || joining;
+  if (picking) return;
+  if (joining) { renderJoin(); return; }
+  renderTop(); renderRec();
+  if (!$("sheet").hidden) renderSheet();
+
+  const who = $("who"), read = $("read");
+  read.textContent = "";
+  $("replay").hidden = true;
+  const open = sock && sock.readyState === 1;
+  if (!state) {
+    who.className = "who"; who.textContent = open ? "Waiting for the deck…" : "Connecting…";
+    $("where").textContent = ""; $("steps").textContent = ""; $("hint").textContent = ""; $("media").hidden = true;
+    setBar(false, ""); return;
+  }
+  const s = SCENES[state.index];
+  const mine = isMine();
+  const step = state.step || 0;
+
+  if (!s) {
+    // plain clicker: no notes, only the counter
+    who.className = "who" + (mine ? " mine" : ""); who.textContent = me ? "You can move the deck" : "Watching";
+    $("where").textContent = `Scene ${state.index + 1}`;
+    $("steps").innerHTML = Array.from({ length: (state.steps ?? 0) + 1 }, (_, k) => `<i class="${k <= step ? "on" : ""}"></i>`).join("");
+    $("hint").textContent = "";
+    renderMedia(mine);
+    setBar(mine, "");
+    return;
+  }
+
+  const ci = Math.min(step, Math.max(0, s.chunks.length - 1));
+  const here = FLAT.findIndex((f) => f.si === state.index && f.ci === ci);
+  const mineAt = FLAT.findIndex((f, k) => k > here && f.part === me);
+  const away = mineAt > 0 ? mineAt - here : -1;
+  who.className = "who" + (mine ? " mine" : away === 1 ? " soon" : "");
+  who.textContent = mine ? "Your turn" : s.appendix ? "Backup slide: the lead answers" : `${nameOf(s.part) || "Nobody"} is speaking`;
+  if (!mine && me) {
+    const small = document.createElement("small");
+    small.textContent = away === 1 ? " · you are next" : away > 0 ? ` · your turn in ${away} steps` : " · your part is done";
+    who.append(small);
+  }
+
+  const main = SCENES.filter((x) => !x.appendix).length;
+  $("where").textContent = s.appendix ? `Backup · ${s.title}` : `${state.index + 1}/${main} · ${s.title}`;
+  $("steps").innerHTML = s.chunks.length > 1 ? s.chunks.map((_, k) => `<i class="${k <= ci ? "on" : ""}"></i>`).join("") : "";
+
+  // the text of this step: yours big and bright, someone else's smaller and dimmed
+  const text = s.chunks[ci];
+  if (text) read.append(para(text, mine ? "mine" : me === 0 ? "watch" : "other"));
+  else if (mine) read.append(para("Nothing to say here. Press Next when the animation stops.", "empty"));
+  if (mine) {
+    const after = s.chunks[ci + 1];
+    if (after) read.append(para(after, "after", "Then:"));
+  } else if (me && mineAt > 0 && away <= 3) {
+    // a preview of your first line, so you can get ready
+    const f = FLAT[mineAt], first = SCENES[f.si].chunks[f.ci];
+    if (first) read.append(para(first, "after", "You start:"));
+  }
+  read.scrollTop = 0;
+
+  // one line about what Next does, only when it is more than the next sentence
+  let hint = "";
+  if (mine) {
+    const last = ci >= s.chunks.length - 1, nxt = SCENES[state.index + 1];
+    if (last && !nxt) hint = "Last step. Finish the sentence.";
+    else if (last && nxt.part !== s.part) hint = `Next hands over to ${nameOf(nxt.part)}.`;
+    else if (last) hint = `Next opens: ${nxt.title}.`;
+  }
+  $("hint").textContent = hint;
+  renderMedia(mine);
+  // the intro can be replayed while the first scene is on screen
+  $("replay").hidden = !(me && state.index === 0);
+  $("replay").disabled = !live();
+  setBar(mine, mine ? "" : `${nameOf(s.part) || "Nobody"}'s turn`);
+}
+
+function renderJoin() {
+  $("joinHi").textContent = "Hi, " + nameOf(me);
+  $("joinWho").textContent = "Not " + nameOf(me) + "?";
+}
+
+function renderTop() {
+  const open = sock && sock.readyState === 1;
+  const d = $("dot");
+  d.className = "dot" + (!open ? " off" : deckOnline ? "" : " wait");
+  d.setAttribute("aria-label", !open ? "reconnecting" : deckOnline ? "live" : "deck offline");
+  $("meName").textContent = me ? nameOf(me) : "Watching";
+  $("lvBox").hidden = !micLive() || recording();   // during REC the red badge says the mic runs
+  $("turnPill").hidden = !isMine();
+  // the speaker said "I'm ready" but the microphone is gone (another app took it, the browser stopped it)
+  $("micWarn").hidden = !(me > 0 && joined && levelOn && !micLive());
+}
+
+function setBar(mine, sub) {
+  $("bar").hidden = !me;
+  $("bar").className = "bar" + (mine ? " mine" : "");
+  $("fwd").textContent = "Next";
+  if (sub) { const sm = document.createElement("small"); sm.textContent = sub; $("fwd").append(sm); }
+  // while a video plays, Next and Back wait for its end (the server drops them too)
+  const videoOn = !!(state && state.media && !state.media.ended);
+  $("fwd").disabled = $("back").disabled = !(mine && live()) || videoOn;
+}
+
+function renderMedia(mine) {
+  const md = state && state.media;
+  $("media").hidden = !md;
+  if (!md) return;
+  const c = (x) => `${Math.floor((x || 0) / 60)}:${String(Math.floor((x || 0) % 60)).padStart(2, "0")}`;
+  $("mChapter").textContent = md.ended ? "Video ended" : `${md.playing ? "Playing" : "Paused"}${md.chapter ? " · " + md.chapter : ""}`;
+  $("mTime").textContent = `${c(md.t)} / ${c(md.dur)}`;
+  $("mBar").style.width = `${md.dur ? Math.min(100, (md.t / md.dur) * 100) : 0}%`;
+  // the video is run from the lead laptop only: the phones show where it is, without pause or skip
+  if (mine && !md.ended) $("hint").textContent = "The video is playing. Stay quiet: Next comes back when it ends.";
+}
+
+// your turn: buzz and flash once when the deck reaches your part
+function checkTurn() {
+  const mine = isMine();
+  if (mine && !wasMine && state && joined) {
+    buzz([180, 90, 180]);
+    const f = $("flash"); f.classList.remove("go"); void f.offsetWidth; f.classList.add("go");
+  }
+  wasMine = mine;
+}
+
+/* ------------------------------------------------------------------ details sheet */
+
+$("more").onclick = () => { $("sheet").hidden = false; renderSheet(); };
+function closeSheet() { $("sheet").hidden = true; }
+$("sheetClose").onclick = closeSheet;
+$("sheet").onclick = (e) => { if (e.target === $("sheet")) closeSheet(); };
+function renderSheet() {
+  const open = sock && sock.readyState === 1;
+  $("dMic").textContent = micLive() ? "on" : micPerm === "denied" ? "blocked in the browser" : me ? "off" : "not used";
+  $("dConn").textContent = (!open ? "reconnecting" : deckOnline ? "live" : "deck offline") + (clock.rtt != null ? ` · ${clock.rtt} ms` : "");
+  const t = take, age = t && t.lastOk ? Math.round((Date.now() - t.lastOk) / 1000) : null;
+  $("dRec").textContent = !recording() ? (t ? "stopped" : "not recording")
+    : !(recorder && recorder.state === "recording") ? "microphone not running"
+    : `${t.queue.length > 1 ? t.queue.length + " waiting · " : ""}${age === null ? "uploading…" : `saved ${age} s ago`}`;
+  $("dBat").textContent = battery ? `${Math.round(battery.level * 100)}%${battery.charging ? " · charging" : ""}` : "unknown";
+  $("change").disabled = recording();
+}
+
+/* ------------------------------------------------------------------ microphone */
+
+// One microphone stream for both jobs: the level for the deck's speaker chip (~10 per second,
+// numbers only) and the local recording. Processing is off by default for the cleanest voice,
+// which is why headphones are required: the phone must not hear the call.
+let mic = null, micPerm = "unknown", levelOn = false;
+
+if (navigator.permissions && navigator.permissions.query) {
+  navigator.permissions.query({ name: "microphone" }).then((p) => {
+    micPerm = p.state; p.onchange = () => { micPerm = p.state; render(); report(); }; render(); report();
+  }).catch(() => {});
+}
+
+const micLive = () => !!(mic && mic.stream.getAudioTracks().some((t) => t.readyState === "live"));
+async function openMic() {
+  if (micLive()) { if (mic.ctx.state === "suspended") mic.ctx.resume().catch(() => {}); return mic; }
+  if (mic) closeMic();
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw Object.assign(new Error("no getUserMedia"), { name: "NotSupportedError" });
+  const processing = !!RECCFG.processing;
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: {
+    channelCount: 1, sampleRate: 48000, echoCancellation: processing, noiseSuppression: processing, autoGainControl: processing } });
+  micPerm = "granted";
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  await ctx.resume().catch(() => {});
+  const an = ctx.createAnalyser(); an.fftSize = 1024;
+  ctx.createMediaStreamSource(stream).connect(an);
+  const buf = new Float32Array(an.fftSize);
+  let smooth = 0;
+  const timer = setInterval(() => {
+    an.getFloatTimeDomainData(buf);
+    let sum = 0; for (const x of buf) sum += x * x;
+    const v = Math.min(1, Math.sqrt(sum / buf.length) * 7);
+    smooth = v > smooth ? v : smooth * 0.82 + v * 0.18;
+    $("lv").style.width = Math.round(smooth * 100) + "%";
+    if ((levelOn || recording()) && sock && sock.readyState === 1 && me) sock.send(JSON.stringify({ type: "level", part: me, v: Math.round(smooth * 100) / 100 }));
+  }, 100);
+  stream.getAudioTracks().forEach((t) => t.addEventListener("ended", () => { render(); report(); }));
+  mic = { stream, ctx, timer };
+  return mic;
+}
+function closeMic() {
+  if (!mic) return;
+  clearInterval(mic.timer); mic.stream.getTracks().forEach((t) => t.stop()); mic.ctx.close().catch(() => {});
+  mic = null; $("lv").style.width = "0";
+}
+
+// "I'm ready": the one tap. It asks for the microphone (needs this tap), turns on the level, keeps the screen on,
+// and confirms headphones + the call on the laptop (the line above the button).
+$("ready").onclick = async () => {
+  const btn = $("ready"), err = $("joinErr");
+  btn.disabled = true; btn.textContent = "Allow the microphone…"; err.hidden = true;
+  try {
+    await openMic();
+    levelOn = true; joined = true; buzz(30);
+  } catch (e) {
+    const name = e && e.name;
+    if (name === "NotAllowedError") micPerm = "denied";
+    err.textContent = name === "NotAllowedError"
+      ? "The microphone is blocked. Allow it for this site (iPhone: aA in the address bar → Website Settings; Android: the lock icon → Permissions), then tap again."
+      : name === "NotSupportedError" ? "This browser cannot use the microphone here. Use Chrome on Android or Safari on iPhone."
+      : name === "NotReadableError" ? "Another app is using the microphone (a call on this phone?). Close it, then tap again."
+      : "The microphone did not start: " + (e && e.message || e) + ". Tap again.";
+    err.hidden = false;
+    $("noMic").hidden = false;
+  }
+  btn.disabled = false; btn.textContent = "I'm ready";
+  wake(); render(); report();
+};
+$("micWarn").onclick = async () => {
+  try { await openMic(); } catch (e) { if (e && e.name === "NotAllowedError") micPerm = "denied"; }
+  if (recording() && !(recorder && recorder.state === "recording")) await startTake();
+  render(); report();
+};
+$("noMic").onclick = () => { joined = true; levelOn = false; render(); report(); };
+
+/* ------------------------------------------------------------------ local recording (double-ender) */
+
+// The lead starts and stops the recording for everyone. Each phone records its own microphone with
+// MediaRecorder and uploads a chunk every few seconds, so a dead phone loses at most one chunk.
+let recSession = null, recState = "idle", recorder = null, take = null, hiddenAt = 0;
+const recording = () => recState === "countdown" || recState === "recording";
+const CHUNK_MS = Number(RECCFG.chunkMs || 5000);
+function pickMime() {
+  const list = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4;codecs=mp4a.40.2", "audio/mp4", "audio/ogg;codecs=opus"];
+  if (!window.MediaRecorder) return null;
+  return list.find((m) => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) || "";
+}
+const extOf = (mime) => /mp4/.test(mime) ? "mp4" : /ogg/.test(mime) ? "ogg" : "webm";
+const rid = () => Array.from(crypto.getRandomValues(new Uint8Array(6)), (b) => b.toString(16).padStart(2, "0")).join("");
+
+async function startTake() {
+  if (!me || !recSession || !recording()) return;
+  if (recorder && recorder.state === "recording") return;
+  try { await openMic(); }
+  catch {
+    showAlert("Tap to join the recording", "The browser needs one tap to use the microphone.", "Start my microphone", startTake);
+    return;
+  }
+  joined = true;
+  const mime = pickMime();
+  if (mime === null) { showAlert("This browser cannot record", "Use Chrome on Android or Safari 14.5+ on iPhone. The deck still works.", "OK"); return; }
+  const opts = { audioBitsPerSecond: Number(RECCFG.bitrate || 128000) };
+  if (mime) opts.mimeType = mime;
+  let r;
+  try { r = new MediaRecorder(mic.stream, opts); } catch { r = new MediaRecorder(mic.stream); }
+  const t = { id: rid(), session: recSession, seq: 0, queue: [], bytes: 0, lastOk: 0, t0: null, mime: r.mimeType || mime || "", busy: false };
+  take = t; recorder = r;
+  r.ondataavailable = (e) => { if (e.data && e.data.size) { t.queue.push({ seq: t.seq++, blob: e.data }); pump(t); } };
+  r.onstop = () => { pump(t); render(); };
+  r.onerror = () => render();
+  r.start(CHUNK_MS);
+  t.t0 = Date.now();      // when the recorder started, phone clock; the server adds the clock offset
+  report(); render();
+}
+
+function stopTake() {
+  if (recorder && recorder.state !== "inactive") { try { recorder.stop(); } catch {} }
+  recorder = null;
+  // re-checked when the timer fires: "I'm ready" may have turned the level on in the meantime
+  if (!levelOn) setTimeout(() => { if (!recording() && !levelOn) closeMic(); }, 1500);
+}
+
+// uploads in order and retries with backoff; the server answers 409 with the chunk it expects
+async function pump(t) {
+  if (t.busy) return;
+  t.busy = true;
+  let wait = 500;
+  while (t.queue.length) {
+    const c = t.queue[0];
+    const q = new URLSearchParams({ k: key, session: t.session, part: me, take: t.id, seq: c.seq, ext: extOf(t.mime), mime: t.mime,
+      t0: t.t0 ?? Date.now(), off: Math.round(clock.offset ?? 0), rtt: Math.round(clock.rtt ?? -1) });
+    try {
+      const res = await fetch("/upload?" + q, { method: "POST", body: c.blob, headers: { "content-type": "application/octet-stream" } });
+      const body = await res.json().catch(() => ({}));
+      if (res.ok) { t.queue.shift(); t.bytes = body.bytes ?? t.bytes + c.blob.size; t.lastOk = Date.now(); wait = 500; renderRec(); continue; }
+      if (res.status === 409 && typeof body.next === "number") {
+        while (t.queue.length && t.queue[0].seq < body.next) t.queue.shift();
+        if (t.queue.length && t.queue[0].seq > body.next) break;   // the server lost a chunk we no longer have
+        continue;
+      }
+      if (res.status === 410 || res.status === 400 || res.status === 403) { t.queue = []; break; }
+    } catch { /* offline: try again */ }
+    await new Promise((ok) => setTimeout(ok, wait));
+    wait = Math.min(5000, wait * 2);
+  }
+  t.busy = false;
+  renderRec();
+}
+
+function onRec(m) {
+  const prev = recState;
+  recState = m.state; recSession = m.session || recSession;
+  if (m.state === "countdown" && prev !== "countdown") {
+    buzz(60);
+    closeSheet();
+    if (me) startTake();      // start now, so the beep is inside the recording
+    countdown(m.countdownMs || 3000);
+  } else if (m.state === "recording") {
+    $("count").hidden = true;
+    if (me && (!recorder || recorder.state !== "recording")) startTake();
+  } else if (m.state === "stopped" || m.state === "idle") {
+    $("count").hidden = true;
+    if (prev === "recording" || prev === "countdown") buzz([60, 60, 60]);
+    if (recorder) stopTake();
+  }
+  render(); report();
+}
+
+let countTimer = null;
+function countdown(ms) {
+  clearInterval(countTimer);
+  const end = Date.now() + ms;
+  $("count").hidden = false;
+  const tick = () => {
+    const left = Math.ceil((end - Date.now()) / 1000);
+    $("countN").textContent = Math.max(1, left);
+    if (left <= 0) { clearInterval(countTimer); $("count").hidden = true; }
+  };
+  tick(); countTimer = setInterval(tick, 100);
+}
+
+// the REC badge in the top bar: elapsed time while the recorder runs, a red outline when it does not
+function renderRec() {
+  const on = recording() && !!me;
+  const pill = $("recPill");
+  pill.hidden = !on;
+  if (!on) return;
+  const t = take, ok = recorder && recorder.state === "recording";
+  const s = t && t.t0 ? Math.floor((Date.now() - t.t0) / 1000) : 0;
+  const stale = t && t.lastOk && Date.now() - t.lastOk > 12000;
+  pill.className = "pill rec" + (ok && !stale ? "" : " bad");
+  pill.textContent = !ok ? "● REC: mic off" : stale ? "● REC: not saving" : `● ${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+setInterval(() => { if (recording()) renderRec(); if (!$("sheet").hidden) renderSheet(); }, 1000);
+
+// Mobile browsers pause the page (and often the recorder) in the background or with the screen locked.
+// Leaving is logged as a gap in timeline.json; on return the recording resumes as a new take.
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") {
+    hiddenAt = Date.now();
+    if (recording() && me) gap("hidden", false);
+    report();
+    return;
+  }
+  lock = null; wake();
+  if (!sock || sock.readyState > 1) { retry = 0; connect(); }
+  else if (sock.readyState === 1) send("hello");
+  if (recording() && me && hiddenAt) {
+    const away = Date.now() - hiddenAt;
+    const alive = recorder && recorder.state === "recording" && micLive();
+    (async () => {
+      if (!alive) { stopTake(); await startTake(); }
+      gap("visible", !alive, away);
+    })();
+    hiddenAt = 0;
+    buzz([200, 100, 200]);
+    showAlert("You left the page during the recording",
+      `For ${Math.round(away / 1000)} s your phone may not have recorded. It records again now. Keep this page open with the screen on until the lead stops.`, "Got it");
+  }
+  hiddenAt = 0;
+  report();
+});
+function gap(st, resumed, hiddenMs) {
+  if (sock && sock.readyState === 1) sock.send(JSON.stringify({ type: "rec-gap", part: me, state: st, at: Date.now(), offset: Math.round(clock.offset ?? 0), resumed, hiddenMs }));
+}
+
+function showAlert(h, p, btn, action) {
+  $("alertH").textContent = h; $("alertP").textContent = p; $("alertBtn").textContent = btn || "OK";
+  $("alert").hidden = false;
+  $("alertBtn").onclick = () => { $("alert").hidden = true; wake(); if (action) action(); };
+}
+
+/* ------------------------------------------------------------------ phone health for the control page */
+
+let battery = null;
+if (navigator.getBattery) navigator.getBattery().then((b) => { battery = b; b.onlevelchange = b.onchargingchange = report; report(); }).catch(() => {});
+function report() {
+  if (!sock || sock.readyState !== 1 || me === null || me === undefined) return;
+  sock.send(JSON.stringify({ type: "status", part: me,
+    battery: battery ? Math.round(battery.level * 100) : null, charging: battery ? battery.charging : null,
+    // "headphones" = the speaker tapped I'm ready under "Laptop on the call, headphones on"
+    mic: micPerm, micOn: micLive(), headphones: joined && levelOn,
+    recording: !!(recorder && recorder.state === "recording"), hidden: document.visibilityState === "hidden",
+    queue: take ? take.queue.length : 0, rtt: clock.rtt, offset: clock.offset, mime: take ? take.mime : pickMime() }));
+}
+setInterval(report, 3000);
+
+/* ------------------------------------------------------------------ deck commands */
+
+function send(cmd) {
+  if (sock && sock.readyState === 1) sock.send(JSON.stringify({ type: "cmd", cmd, part: me }));
+  if (cmd !== "hello") buzz(12);
+  wake();
+}
+function press(cmd) {
+  send(cmd);
+  const f = $("fwd"); f.classList.add("sent"); setTimeout(() => f.classList.remove("sent"), 180);
+}
+$("fwd").onclick = () => press("next");
+$("back").onclick = () => press("prev");
+$("replay").onclick = () => send("replay");
+// a Bluetooth clicker or keyboard paired with the phone
+document.addEventListener("keydown", (e) => {
+  if ($("talk").hidden || $("fwd").disabled) return;
+  if (["ArrowRight", "PageDown", " ", "Enter"].includes(e.key)) { e.preventDefault(); press("next"); }
+  if (["ArrowLeft", "PageUp"].includes(e.key)) { e.preventDefault(); press("prev"); }
+});
+// no double-tap zoom on the buttons (iOS ignores user-scalable)
+let lastTouch = 0;
+document.addEventListener("touchend", (e) => { const now = Date.now(); if (now - lastTouch < 350 && e.target.closest("button")) e.preventDefault(); lastTouch = now; }, { passive: false });
+document.addEventListener("gesturestart", (e) => e.preventDefault());
+
+/* ------------------------------------------------------------------ connection and clock */
+
+// clock offset to the server, NTP-style: offset = server - (sent + rtt/2); the sample with the smallest rtt wins
+const clock = { offset: null, rtt: null, samples: [] };
+function onPong(m) {
+  const now = Date.now(), rtt = now - m.t;
+  if (typeof m.server !== "number" || rtt < 0) return;
+  clock.samples.push({ rtt, offset: m.server - (m.t + rtt / 2) });
+  if (clock.samples.length > 16) clock.samples.shift();
+  const best = clock.samples.reduce((a, b) => (b.rtt < a.rtt ? b : a));
+  clock.rtt = Math.round(best.rtt); clock.offset = Math.round(best.offset);
+}
+const ping = () => { if (sock && sock.readyState === 1) sock.send(JSON.stringify({ type: "ping", t: Date.now() })); };
+
+let retry = 0, retryTimer = null, lastMsg = 0;
+function connect() {
+  clearTimeout(retryTimer);
+  if (sock && (sock.readyState === 0 || sock.readyState === 1)) return;
+  const s = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws?role=remote&k=${encodeURIComponent(key)}`);
+  sock = s;
+  s.onopen = () => {
+    retry = 0; lastMsg = Date.now(); send("hello"); report(); render();
+    for (let i = 0; i < 6; i++) setTimeout(ping, i * 250);   // a burst for a good first clock estimate
+  };
+  s.onmessage = (e) => {
+    lastMsg = Date.now();
+    let m; try { m = JSON.parse(e.data); } catch { return; }
+    if (m.type === "pong") { onPong(m); return; }
+    if (m.type === "state") { state = m.state; checkTurn(); }
+    else if (m.type === "deck") deckOnline = m.online;
+    else if (m.type === "scenes") { SCENES = m.scenes || []; if (m.speakers) SPEAKERS = m.speakers; flatten(); buildPicker(); wasMine = isMine(); }
+    else if (m.type === "rec") onRec(m);
+    render();
+  };
+  s.onclose = () => {
+    if (sock !== s) return;
+    render();
+    retryTimer = setTimeout(connect, Math.min(5000, 600 * 2 ** retry++));
+  };
+}
+setInterval(() => {
+  if (!sock || sock.readyState !== 1) return;
+  if (Date.now() - lastMsg > 25000) { sock.close(); return; }
+  ping();
+}, 10000);
+window.addEventListener("online", connect);
+
+// keep the phone screen on while the remote is open
+let lock = null;
+async function wake() { try { if (!lock && navigator.wakeLock && document.visibilityState === "visible") { lock = await navigator.wakeLock.request("screen"); lock.onrelease = () => { lock = null; }; } } catch {} }
+document.addEventListener("click", wake);
+
+render();
+connect();
+wake();
+</script>
+</body>
+</html>
