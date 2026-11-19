@@ -3,152 +3,225 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
-<meta name="theme-color" content="#0f1420">
+<meta name="theme-color" content="#0E121B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Remote</title>
 <style>
-/* Phone first, one hand: status and text at the top, the big Next under the thumb at the bottom. */
+/* Phone first, one hand, portrait: a slim status bar at the top, the text in the middle,
+   the big Next under the thumb. Two screens: Join (one tap) and Talk. Everything else is in "…". */
 :root {
-  --bg: #F5F3EF; --surface: #FFFFFF; --ink: #141A26; --muted: #646C7E; --faint: #A4AAB8; --line: #E1DDD5;
-  --accent: #2F5BEA; --on-accent: #FFFFFF; --turn: #D9622B; --turn-soft: #FBE9DF; --good: #2E8A57; --bad: #C63A2F; --rec: #D32F2F;
-  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  --size: 24px; color-scheme: light;
+  --bg: #0E121B; --surface: #171D2A; --raise: #1F2737; --ink: #EEF1F7; --muted: #8E97AB; --faint: #5A6479; --line: #262E40;
+  --turn: #FF8A4C; --turn-ink: #1C0D04; --turn-soft: rgba(255,138,76,.12); --good: #4CC38A; --warn: #F2B544; --bad: #FF6B5E; --rec: #FF4D4D;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --size: 26px; color-scheme: dark;
 }
-@media (prefers-color-scheme: dark) { :root {
-  --bg: #0F1420; --surface: #182031; --ink: #EDF0F6; --muted: #9AA3B8; --faint: #5B6479; --line: #273046;
-  --accent: #5C82FF; --turn: #FF8B52; --turn-soft: #3A2417; --good: #5CC38A; --bad: #FF7A6B; --rec: #FF5A52; color-scheme: dark } }
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
 html { touch-action: manipulation; -webkit-text-size-adjust: 100%; }
 [hidden] { display: none !important; }
 body { background: var(--bg); color: var(--ink); font-family: var(--font); -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none; -webkit-user-select: none; user-select: none; }
-button { font: inherit; color: inherit; touch-action: manipulation; cursor: pointer; }
+button { font: inherit; color: inherit; touch-action: manipulation; cursor: pointer; border: 0; background: none; }
 button:disabled { cursor: default; }
-button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-.screen { height: 100dvh; display: flex; flex-direction: column; max-width: 640px; margin: 0 auto;
-  padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+button:focus-visible { outline: 3px solid var(--turn); outline-offset: 2px; }
+.screen { height: 100dvh; display: flex; flex-direction: column; max-width: 560px; margin: 0 auto;
+  padding: max(10px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left)); }
+.small { font-size: 15px; color: var(--muted); }
+.link { color: var(--muted); font-size: 15px; padding: 12px 6px; text-decoration: underline; text-underline-offset: 3px; }
 
-/* who are you */
+/* who are you (only when the link has no #partN) */
 .pick { justify-content: flex-end; gap: 10px; }
-.pick h1 { font-size: 26px; margin: 0; }
-.pick p { margin: 0 0 8px; color: var(--muted); }
-.pick button { text-align: left; font-size: 20px; font-weight: 650; padding: 18px 20px; border-radius: 16px; min-height: 60px;
-  border: 1px solid var(--line); background: var(--surface); display: flex; justify-content: space-between; align-items: center; }
-.pick button span { color: var(--muted); font: 500 14px var(--mono); }
-.pick .watch { background: transparent; border-style: dashed; }
+.pick h1 { font-size: 28px; margin: 0 0 4px; }
+.pick button { text-align: left; font-size: 21px; font-weight: 650; padding: 0 20px; border-radius: 18px; min-height: 64px;
+  background: var(--surface); display: flex; justify-content: space-between; align-items: center; }
+.pick button span { color: var(--faint); font: 500 14px var(--mono); }
+.pick .watch { background: transparent; border: 1px dashed var(--line); color: var(--muted); }
 
-/* main */
-.main { gap: 12px; }
-.top { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); min-height: 36px; }
-.who { background: none; border: 0; padding: 6px 0; font-weight: 600; color: var(--muted); max-width: 36%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.who b { color: var(--ink); }
-.conn { display: flex; align-items: center; gap: 6px; font-weight: 600; white-space: nowrap; }
-.conn i { width: 9px; height: 9px; border-radius: 50%; background: var(--good); }
-.conn.off i { background: var(--bad); animation: blink 1s infinite; }
-.conn.off { color: var(--bad); }
+/* Join: one tap */
+.join { justify-content: space-between; }
+.join .title { font: 600 13px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); padding-top: 8px; }
+.join .hello { display: flex; flex-direction: column; gap: 14px; }
+.join h1 { margin: 0; font-size: 40px; line-height: 1.1; font-weight: 800; letter-spacing: -.01em; }
+.join p { margin: 0; font-size: 20px; line-height: 1.45; color: var(--muted); }
+.join .err { color: var(--bad); font-size: 17px; line-height: 1.4; }
+.join .foot { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
+.join .foot .row { display: flex; justify-content: space-between; }
+.go { min-height: 96px; border-radius: 26px; background: var(--turn); color: var(--turn-ink); font-size: 28px; font-weight: 800; }
+.go:disabled { opacity: .55; }
+
+/* Talk */
+.talk { gap: 10px; }
+.top { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 15px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--good); flex: none; }
+.dot.off { background: var(--bad); animation: blink 1s infinite; }
+.dot.wait { background: var(--warn); }
 @keyframes blink { 50% { opacity: .25; } }
-.chip { background: none; border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; font-weight: 700; color: var(--muted); min-height: 36px; }
-.mic { margin-left: auto; display: flex; align-items: center; gap: 6px; }
-.mic.on { border-color: var(--turn); color: var(--turn); }
-.mic .lv { width: 30px; height: 6px; border-radius: 4px; background: var(--line); overflow: hidden; }
-.mic .lv i { display: block; height: 100%; width: 0; background: var(--turn); }
-.recbar { display: flex; align-items: center; gap: 10px; background: var(--rec); color: #fff; border-radius: 12px; padding: 8px 12px; font-weight: 700; font-size: 15px; }
-.recbar i { width: 10px; height: 10px; border-radius: 50%; background: #fff; animation: blink 1.2s infinite; }
-.recbar span:last-child { margin-left: auto; font: 600 13px var(--mono); opacity: .9; }
-.setup { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; font-size: 15px; }
-.setup summary { font-weight: 700; cursor: pointer; list-style: none; }
-.setup summary::-webkit-details-marker { display: none; }
-.setup label { display: flex; gap: 10px; align-items: center; min-height: 40px; }
-.setup input { width: 22px; height: 22px; accent-color: var(--accent); flex: none; }
-.setup .ok { color: var(--good); }
-.setup .warn { color: var(--bad); }
-.setup button { border: 1px solid var(--line); background: none; border-radius: 10px; min-height: 40px; padding: 0 12px; font-weight: 700; }
-.status { font-size: 22px; font-weight: 750; line-height: 1.25; }
-.status small { display: block; font-size: 15px; font-weight: 500; color: var(--muted); margin-top: 3px; }
-.status.mine { color: var(--turn); }
-.status.soon small { color: var(--turn); font-weight: 650; }
-.where { display: flex; align-items: center; justify-content: space-between; gap: 10px; font: 600 12px var(--mono); letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.me { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 0 1 auto; min-width: 0; }
+.lv { width: 28px; height: 5px; border-radius: 3px; background: var(--line); overflow: hidden; flex: none; }
+.lv i { display: block; height: 100%; width: 0; background: var(--good); transition: width .1s; }
+.spacer { flex: 1; }
+.pill { border-radius: 999px; padding: 5px 10px; font-size: 12px; font-weight: 800; letter-spacing: .04em; white-space: nowrap; flex: none; }
+.pill.turn { background: var(--turn); color: var(--turn-ink); animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(255,138,76,.55); } 50% { box-shadow: 0 0 0 7px rgba(255,138,76,0); } }
+.pill.rec { background: var(--rec); color: #fff; font-family: var(--mono); }
+/* team strip: your mic button (as in Meet) and a chip per teammate */
+.team { display: flex; align-items: center; gap: 10px; flex: none; }
+.mic, .cam { --lv: 0; width: 60px; height: 60px; border-radius: 50%; flex: none; display: grid; place-items: center;
+  background: var(--raise); color: var(--ink); box-shadow: 0 0 0 calc(var(--lv) * 9px) rgba(76,195,138,.45); transition: background .15s, box-shadow .1s; }
+.mic svg { width: 28px; height: 28px; }
+.mic.off { background: #EA4335; color: #fff; box-shadow: none; }
+.mic.none { background: var(--surface); color: var(--faint); box-shadow: none; }
+.cam { position: relative; overflow: hidden; box-shadow: none; }
+.cam video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); border-radius: 50%; }
+.cam svg { position: relative; }
+.cam.on svg { opacity: 0; }
+.cam.off { background: #EA4335; color: #fff; }
+.cam.none { background: var(--surface); color: var(--faint); }
+.mates { display: flex; gap: 6px; flex: 1 1 auto; min-width: 0; }
+.mate { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.mate .face { position: relative; width: 44px; height: 44px; border-radius: 50%; background: var(--raise); display: grid; place-items: center;
+  font-size: 15px; font-weight: 800; color: var(--muted); border: 2px solid transparent; transition: border-color .15s, box-shadow .15s; }
+.mate .face img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.mate .badge { position: absolute; right: -4px; bottom: -4px; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: var(--bg); }
+.mate svg { width: 13px; height: 13px; }
+.mate b { font-size: 12px; font-weight: 700; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.mate.live svg { color: var(--good); }
+.mate.muted svg { color: #FF6B5E; }
+.mate.nomic svg, .mate.gone svg { color: var(--faint); }
+.mate.gone { opacity: .45; }
+.mate.gone .face { border-style: dashed; border-color: var(--line); }
+.mate.turn .face { border-color: var(--turn); }
+.mate.turn b { color: var(--turn); }
+.mate.talking .face { box-shadow: 0 0 0 3px rgba(76,195,138,.75); }
+.mute-note { font-size: 13px; color: var(--faint); text-align: center; margin-top: -4px; flex: none; }
+.mute-note.on { color: #FF8A80; }
+.pill.rec.bad { background: transparent; color: var(--rec); border: 1px solid var(--rec); }
+.micwarn { min-height: 52px; border-radius: 14px; background: var(--bad); color: #fff; font-size: 16px; font-weight: 750; }
+.more { width: 44px; height: 44px; border-radius: 12px; font-size: 22px; font-weight: 800; color: var(--muted); flex: none; line-height: 1; }
+.where { display: flex; justify-content: space-between; align-items: center; gap: 10px; font: 600 12px var(--mono);
+  letter-spacing: .06em; text-transform: uppercase; color: var(--faint); }
 .where span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dots { display: flex; gap: 5px; flex: none; }
-.dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
-.dots i.on { background: var(--accent); }
-.read { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-user-select: text; user-select: text; padding: 2px 0; }
-.read p { margin: 0 0 14px; font-size: var(--size); line-height: 1.45; font-weight: 500; }
-.read p.mine { background: var(--turn-soft); border-left: 4px solid var(--turn); padding: 10px 12px; border-radius: 10px; font-weight: 600; }
-.read p.quiet { color: var(--faint); font-size: calc(var(--size) * .8); }
-.read p.after { color: var(--muted); font-size: calc(var(--size) * .8); }
-.read p.after::before { content: "Then: "; font-weight: 700; }
-.read p.empty { color: var(--turn); font-weight: 700; }
-.hint { font-size: 15px; font-weight: 650; color: var(--turn); }
-.media { border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; background: var(--surface); }
+.steps { display: flex; gap: 5px; flex: none; }
+.steps i { width: 7px; height: 7px; border-radius: 50%; background: var(--line); }
+.steps i.on { background: var(--muted); }
+.who { font-size: 17px; font-weight: 650; color: var(--muted); min-height: 24px; }
+.who.mine { color: var(--turn); font-size: 22px; font-weight: 800; }
+.who small { font-weight: 500; color: var(--faint); }
+.who.soon small { color: var(--turn); font-weight: 700; }
+.read { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-user-select: text; user-select: text; padding: 4px 0; }
+.read p { margin: 0 0 16px; line-height: 1.42; }
+.read p.mine { font-size: var(--size); font-weight: 600; color: var(--ink); border-left: 4px solid var(--turn); padding-left: 14px; }
+.read p.other { font-size: calc(var(--size) * .74); color: var(--faint); font-weight: 500; }
+.read p.watch { font-size: calc(var(--size) * .85); color: var(--ink); }
+.read p.after { font-size: calc(var(--size) * .68); color: var(--muted); }
+.read p.after b { color: var(--faint); font-weight: 700; }
+.read p.empty { font-size: 20px; color: var(--turn); font-weight: 700; }
+.hint { font-size: 15px; font-weight: 650; color: var(--turn); min-height: 0; }
+.media { border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 9px; background: var(--surface); }
 .media .line { display: flex; justify-content: space-between; gap: 8px; font: 600 14px var(--mono); color: var(--muted); }
-.media .line b { color: var(--ink); font-family: var(--font); font-size: 17px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.media .track { height: 6px; border-radius: 6px; background: var(--line); overflow: hidden; }
+.media .line b { color: var(--ink); font-family: var(--font); font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.media .track { height: 5px; border-radius: 5px; background: var(--line); overflow: hidden; }
 .media .track i { display: block; height: 100%; background: var(--turn); width: 0; }
-.replay { background: none; border: 1px dashed var(--line); border-radius: 14px; min-height: 48px; font-size: 16px; font-weight: 600; color: var(--muted); }
-.bar { display: flex; gap: 10px; align-items: stretch; flex: none; }
-.back { flex: 0 0 26%; background: var(--surface); border: 1px solid var(--line); border-radius: 22px; font-size: 20px; font-weight: 700; color: var(--muted); min-height: 120px; }
-.next { flex: 1 1 auto; border: 0; border-radius: 22px; min-height: 120px; font-size: 26px; font-weight: 800; background: var(--accent); color: var(--on-accent); transition: transform .08s, opacity .2s; }
-.bar.mine .next { background: var(--turn); }
-.next:disabled, .back:disabled { opacity: .35; }
-.next.sent { transform: scale(.97); opacity: .8; }
-.next small { display: block; font-size: 14px; font-weight: 600; opacity: .85; margin-top: 4px; }
-.flash { position: fixed; inset: 0; pointer-events: none; background: var(--turn); opacity: 0; }
+.bar { display: flex; gap: 10px; flex: none; }
+.back { flex: 0 0 24%; background: var(--surface); border-radius: 24px; font-size: 18px; font-weight: 700; color: var(--muted); min-height: 128px; }
+.next { flex: 1 1 auto; border-radius: 24px; min-height: 128px; font-size: 30px; font-weight: 800; background: var(--surface); color: var(--faint); transition: transform .08s, background .2s; }
+.next small { display: block; font-size: 14px; font-weight: 600; margin-top: 4px; }
+.bar.mine .next { background: var(--turn); color: var(--turn-ink); }
+.bar.mine .back { color: var(--ink); }
+.next:disabled, .back:disabled { opacity: .5; }
+.bar.mine .next:disabled { opacity: .45; }
+.next.sent { transform: scale(.97); }
+.flash { position: fixed; inset: 0; pointer-events: none; background: var(--turn); opacity: 0; z-index: 5; }
 .flash.go { animation: flash 1.2s ease-out; }
-@keyframes flash { 0% { opacity: .55; } 100% { opacity: 0; } }
-.cover { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 28px; text-align: center; }
-.cover.count { background: rgba(0,0,0,.82); color: #fff; }
-.cover.count b { font-size: 140px; line-height: 1; font-weight: 800; }
+@keyframes flash { 0% { opacity: .5; } 100% { opacity: 0; } }
+
+/* the "…" sheet: everything that is not needed to talk */
+.sheet { position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,.55); display: flex; align-items: flex-end; justify-content: center; }
+.sheet .card { width: 100%; max-width: 560px; background: var(--surface); border-radius: 24px 24px 0 0; padding: 18px 20px max(18px, env(safe-area-inset-bottom));
+  display: flex; flex-direction: column; gap: 4px; }
+.sheet .rowi { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 46px; font-size: 16px; border-bottom: 1px solid var(--line); }
+.sheet .rowi span:first-child { color: var(--muted); }
+.sheet .rowi span:last-child { font-weight: 650; text-align: right; }
+.sheet .acts { display: flex; gap: 10px; margin-top: 12px; }
+.sheet .acts button { flex: 1; min-height: 54px; border-radius: 16px; background: var(--raise); font-size: 16px; font-weight: 700; }
+.sheet .acts button:disabled { opacity: .4; }
+.sheet .close { margin-top: 10px; min-height: 54px; border-radius: 16px; background: var(--ink); color: var(--bg); font-size: 17px; font-weight: 800; }
+
+/* full-screen covers: the countdown and the "you left the page" warning */
+.cover { position: fixed; inset: 0; z-index: 30; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 28px; text-align: center; }
+.cover.count { background: #000; color: #fff; }
+.cover.count b { font-size: 180px; line-height: 1; font-weight: 800; font-variant-numeric: tabular-nums; }
+.cover.count span { font-size: 20px; color: #bbb; }
 .cover.alert { background: var(--rec); color: #fff; }
-.cover.alert h2 { margin: 0; font-size: 28px; }
-.cover.alert p { margin: 0; font-size: 18px; line-height: 1.4; }
-.cover button { min-height: 64px; min-width: 70%; border: 0; border-radius: 18px; font-size: 20px; font-weight: 800; background: #fff; color: #111; }
-@media (prefers-reduced-motion: reduce) { .next.sent { transform: none; } .flash.go { animation-duration: .01s; } .conn.off i, .recbar i { animation: none; } }
-@media (max-height: 600px) { .back, .next { min-height: 84px; } }
+.cover.alert h2 { margin: 0; font-size: 30px; line-height: 1.15; }
+.cover.alert p { margin: 0; font-size: 19px; line-height: 1.45; max-width: 26em; }
+.cover button { min-height: 72px; min-width: 80%; border-radius: 22px; font-size: 22px; font-weight: 800; background: #fff; color: #111; }
+@media (prefers-reduced-motion: reduce) { .next.sent { transform: none; } .flash.go { animation-duration: .01s; } .dot.off, .pill.turn { animation: none; } }
+@media (max-height: 640px) { .back, .next { min-height: 88px; } .go { min-height: 76px; } }
 </style>
 </head>
 <body>
 
 <div class="screen pick" id="pick" hidden>
   <h1 id="pickTitle">Remote</h1>
-  <p>Who are you? Your Next button works while your part is on screen.</p>
+  <p class="small" style="margin:0 0 8px">Who are you?</p>
   <div id="pickList" style="display:flex;flex-direction:column;gap:10px"></div>
   <button data-part="0" class="watch" id="pickWatch">Just watch</button>
 </div>
 
-<div class="screen main" id="main" hidden>
-  <div class="top">
-    <button class="who" id="who" aria-label="Change who you are"></button>
-    <span class="conn off" id="conn" role="status"><i></i><span id="connText">connecting</span></span>
-    <button class="chip mic" id="mic" aria-label="Turn on my microphone" aria-pressed="false" hidden><span id="micText">Mic</span> <span class="lv"><i id="micLv"></i></span></button>
-    <button class="chip" id="aa" aria-label="Text size">Aa</button>
+<div class="screen join" id="join" hidden>
+  <div class="title" id="joinTitle"></div>
+  <div class="hello">
+    <h1 id="joinHi">Hi</h1>
+    <p>Laptop on the call, headphones on, keep this page open.</p>
+    <div class="err" id="joinErr" hidden></div>
   </div>
-  <div class="recbar" id="recbar" hidden><i></i><span id="recText">REC</span><span id="recUp"></span></div>
-  <details class="setup" id="setup" hidden>
-    <summary id="setupSum">Before the recording</summary>
-    <label><span id="micState" class="warn">Microphone: not allowed yet</span><button id="micTest" style="margin-left:auto">Allow</button></label>
-    <label><input type="checkbox" id="hp"> I wear headphones (other voices must not reach this phone)</label>
-    <label><input type="checkbox" id="meet"> The call runs on my laptop, not on this phone</label>
-    <span style="color:var(--muted)">Keep this page open with the screen on while recording. If you leave it, the recording stops until you come back.</span>
-  </details>
-  <div class="status" id="status" aria-live="polite"></div>
-  <div class="where"><span id="where"></span><span class="dots" id="dots"></span></div>
+  <div class="foot">
+    <button class="go" id="ready">I'm ready</button>
+    <div class="row"><button class="link" id="joinWho">Not you?</button><button class="link" id="noMic" hidden>Continue without microphone</button></div>
+  </div>
+</div>
+
+<div class="screen talk" id="talk" hidden>
+  <div class="top">
+    <i class="dot off" id="dot" role="status" aria-label="connecting"></i>
+    <span class="me" id="meName"></span>
+    <span class="lv" id="lvBox" hidden><i id="lv"></i></span>
+    <span class="spacer"></span>
+    <span class="pill turn" id="turnPill" hidden>YOUR TURN</span>
+    <span class="pill rec" id="recPill" hidden>● REC</span>
+    <button class="more" id="more" aria-label="Details">…</button>
+  </div>
+  <button class="micwarn" id="micWarn" hidden>Microphone stopped. Tap to turn it on</button>
+  <div class="where"><span id="where"></span><span class="steps" id="steps"></span></div>
+  <div class="who" id="who" aria-live="polite"></div>
   <div class="read" id="read"></div>
   <div class="hint" id="hint"></div>
   <div class="media" id="media" hidden>
     <div class="line"><b id="mChapter"></b><span id="mTime"></span></div>
     <div class="track"><i id="mBar"></i></div>
   </div>
-  <button class="replay" id="replay" hidden>Replay the intro</button>
+  <div class="team" id="team" hidden><button class="mic" id="micBtn" aria-label="Microphone"></button><button class="cam" id="camBtn" aria-label="Camera" hidden><video id="selfView" muted playsinline autoplay></video></button><div class="mates" id="mates"></div></div>
+  <div class="mute-note" id="muteNote" hidden></div>
   <div class="bar" id="bar">
     <button class="back" id="back" aria-label="Back one step">Back</button>
     <button class="next" id="fwd">Next</button>
   </div>
 </div>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="card" role="dialog" aria-label="Details">
+    <div class="rowi"><span>Microphone</span><span id="dMic"></span></div>
+    <div class="rowi"><span>Connection</span><span id="dConn"></span></div>
+    <div class="rowi"><span>Recording</span><span id="dRec"></span></div>
+    <div class="rowi"><span>Battery</span><span id="dBat"></span></div>
+    <div class="acts"><button id="aa">Text size</button><button id="change">Change speaker</button></div>
+    <button class="close" id="sheetClose">Close</button>
+  </div>
+</div>
+
 <div class="flash" id="flash"></div>
-<div class="cover count" id="count" hidden><span>Recording starts in</span><b id="countN">3</b><span>Stay quiet for the beep</span></div>
+<div class="cover count" id="count" hidden><span>Recording starts</span><b id="countN">3</b><span>Stay quiet for the beep</span></div>
 <div class="cover alert" id="alert" hidden><h2 id="alertH"></h2><p id="alertP"></p><button id="alertBtn">OK</button></div>
 
 <script>
@@ -157,7 +230,7 @@ const DATA = __DATA__;
 let SCENES = DATA.scenes || [];
 let SPEAKERS = DATA.speakers || [];
 const RECCFG = DATA.recording || {};
-const SIZES = [20, 24, 30];
+const SIZES = [22, 26, 32];
 const key = new URLSearchParams(location.search).get("k") || "";
 const $ = (id) => document.getElementById(id);
 const store = { get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } },
@@ -166,6 +239,7 @@ const nameOf = (p) => (SPEAKERS.find((s) => s.part === p) || {}).name || (p ? "P
 const buzz = (p) => { try { navigator.vibrate && navigator.vibrate(p); } catch {} };
 document.title = (DATA.title || "Deck") + " · remote";
 $("pickTitle").textContent = DATA.title || "Remote";
+$("joinTitle").textContent = DATA.title || "";
 
 // every step of the deck in order, to count how far away your turn is
 let FLAT = [];
@@ -190,15 +264,19 @@ const fromHash = () => location.hash === "#watch" ? 0 : Number((/^#part(\d+)$/.e
 let me = fromHash();
 if (Number.isNaN(me)) me = store.get("remoteMe:" + key, null);
 let state = null, deckOnline = false, sock = null, wasMine = false;
+// joined = the speaker tapped "I'm ready" on this page load (mic on, headphones and call on the laptop confirmed)
+let joined = false;
 let sizeAt = store.get("remoteSizeAt", 1);
 document.documentElement.style.setProperty("--size", SIZES[sizeAt] + "px");
 
 function choose(p) {
   me = p; store.set("remoteMe:" + key, p);
   history.replaceState(null, "", location.search + (p ? "#part" + p : "#watch"));
-  wasMine = isMine(); wake(); render(); report();
+  joined = false; wasMine = isMine(); wake(); render(); report();
 }
-$("who").onclick = () => { if (recording()) return; me = null; render(); };
+function changeSpeaker() { if (recording()) return; closeSheet(); me = null; joined = false; render(); }
+$("joinWho").onclick = changeSpeaker;
+$("change").onclick = changeSpeaker;
 $("aa").onclick = () => {
   sizeAt = (sizeAt + 1) % SIZES.length; store.set("remoteSizeAt", sizeAt);
   document.documentElement.style.setProperty("--size", SIZES[sizeAt] + "px");
@@ -214,27 +292,29 @@ function isMine() {
   return !!s && s.part === me;
 }
 
-function para(text, cls) { const p = document.createElement("p"); p.textContent = text; if (cls) p.className = cls; return p; }
+function para(text, cls, lead) {
+  const p = document.createElement("p");
+  if (lead) { const b = document.createElement("b"); b.textContent = lead + " "; p.append(b); }
+  p.append(text); if (cls) p.className = cls; return p;
+}
+
+/* ------------------------------------------------------------------ screens */
 
 function render() {
   const picking = me === null || me === undefined;
-  $("pick").hidden = !picking; $("main").hidden = picking;
+  const joining = !picking && me > 0 && !joined;
+  $("pick").hidden = !picking; $("join").hidden = !joining; $("talk").hidden = picking || joining;
   if (picking) return;
+  if (joining) { renderJoin(); return; }
+  renderTop(); renderRec();
+  if (!$("sheet").hidden) renderSheet();
 
-  $("mic").hidden = !me;
-  $("who").textContent = "";
-  const b = document.createElement("b"); b.textContent = me ? nameOf(me) : "Watching"; $("who").append(b);
-  const open = sock && sock.readyState === 1;
-  $("conn").className = "conn" + (live() ? "" : " off");
-  $("connText").textContent = !open ? "reconnecting" : deckOnline ? "live" : "deck offline";
-  renderSetup(); renderRec();
-
-  const st = $("status"), read = $("read");
+  const who = $("who"), read = $("read");
   read.textContent = "";
-  $("replay").hidden = true;
+  const open = sock && sock.readyState === 1;
   if (!state) {
-    st.className = "status"; st.textContent = open ? "Waiting for the deck…" : "Connecting…";
-    $("where").textContent = ""; $("dots").textContent = ""; $("hint").textContent = ""; $("media").hidden = true;
+    who.className = "who"; who.textContent = open ? "Waiting for the deck…" : "Connecting…";
+    $("where").textContent = ""; $("steps").textContent = ""; $("hint").textContent = ""; $("media").hidden = true;
     setBar(false, ""); return;
   }
   const s = SCENES[state.index];
@@ -243,9 +323,9 @@ function render() {
 
   if (!s) {
     // plain clicker: no notes, only the counter
-    st.className = "status" + (mine ? " mine" : ""); st.textContent = me ? "You can move the deck" : "Watching";
+    who.className = "who" + (mine ? " mine" : ""); who.textContent = me ? "You can move the deck" : "Watching";
     $("where").textContent = `Scene ${state.index + 1}`;
-    $("dots").innerHTML = Array.from({ length: (state.steps ?? 0) + 1 }, (_, k) => `<i class="${k <= step ? "on" : ""}"></i>`).join("");
+    $("steps").innerHTML = Array.from({ length: (state.steps ?? 0) + 1 }, (_, k) => `<i class="${k <= step ? "on" : ""}"></i>`).join("");
     $("hint").textContent = "";
     renderMedia(mine);
     setBar(mine, "");
@@ -256,29 +336,29 @@ function render() {
   const here = FLAT.findIndex((f) => f.si === state.index && f.ci === ci);
   const mineAt = FLAT.findIndex((f, k) => k > here && f.part === me);
   const away = mineAt > 0 ? mineAt - here : -1;
-  st.className = "status" + (mine ? " mine" : away === 1 ? " soon" : "");
-  st.textContent = mine ? "Your turn" : s.appendix ? "Backup slide: the lead answers a question" : `${nameOf(s.part) || "Nobody"} is speaking`;
+  who.className = "who" + (mine ? " mine" : away === 1 ? " soon" : "");
+  who.textContent = mine ? "Your turn" : s.appendix ? "Backup slide: the lead answers" : `${nameOf(s.part) || "Nobody"} is speaking`;
   if (!mine && me) {
     const small = document.createElement("small");
-    small.textContent = away === 1 ? "You are next: get ready" : away > 0 ? `Your turn in ${away} steps` : "Your part is done";
-    st.append(small);
+    small.textContent = away === 1 ? " · you are next" : away > 0 ? ` · your turn in ${away} steps` : " · your part is done";
+    who.append(small);
   }
 
   const main = SCENES.filter((x) => !x.appendix).length;
   $("where").textContent = s.appendix ? `Backup · ${s.title}` : `${state.index + 1}/${main} · ${s.title}`;
-  $("dots").innerHTML = s.chunks.map((_, k) => `<i class="${k <= ci ? "on" : ""}"></i>`).join("");
+  $("steps").innerHTML = s.chunks.length > 1 ? s.chunks.map((_, k) => `<i class="${k <= ci ? "on" : ""}"></i>`).join("") : "";
 
-  // the text of this step; yours is highlighted, the others' is quiet
+  // the text of this step: yours big and bright, someone else's smaller and dimmed
   const text = s.chunks[ci];
-  if (text) read.append(para(text, mine ? "mine" : me === 0 ? "" : "quiet"));
+  if (text) read.append(para(text, mine ? "mine" : me === 0 ? "watch" : "other"));
   else if (mine) read.append(para("Nothing to say here. Press Next when the animation stops.", "empty"));
   if (mine) {
     const after = s.chunks[ci + 1];
-    if (after) read.append(para(after, "after"));
-  } else if (me && mineAt > 0) {
+    if (after) read.append(para(after, "after", "Then:"));
+  } else if (me && mineAt > 0 && away <= 3) {
     // a preview of your first line, so you can get ready
     const f = FLAT[mineAt], first = SCENES[f.si].chunks[f.ci];
-    if (first) read.append(para(first, "after"));
+    if (first) read.append(para(first, "after", "You start:"));
   }
   read.scrollTop = 0;
 
@@ -292,10 +372,27 @@ function render() {
   }
   $("hint").textContent = hint;
   renderMedia(mine);
-  // the intro can be replayed while the first scene is on screen
-  $("replay").hidden = !(me && state.index === 0);
-  $("replay").disabled = !live();
   setBar(mine, mine ? "" : `${nameOf(s.part) || "Nobody"}'s turn`);
+}
+
+function renderJoin() {
+  $("joinHi").textContent = "Hi, " + nameOf(me);
+  $("joinWho").textContent = "Not " + nameOf(me) + "?";
+}
+
+function renderTop() {
+  const open = sock && sock.readyState === 1;
+  const d = $("dot");
+  d.className = "dot" + (!open ? " off" : deckOnline ? "" : " wait");
+  d.setAttribute("aria-label", !open ? "reconnecting" : deckOnline ? "live" : "deck offline");
+  $("meName").textContent = me ? nameOf(me) : "Watching";
+  $("lvBox").hidden = !micLive() || recording();   // during REC the red badge says the mic runs
+  $("turnPill").hidden = !isMine();
+  turnChanged();
+  applyCam();
+  renderTeam();
+  // the speaker said "I'm ready" but the microphone is gone (another app took it, the browser stopped it)
+  $("micWarn").hidden = !(me > 0 && joined && levelOn && !micLive());
 }
 
 function setBar(mine, sub) {
@@ -323,11 +420,29 @@ function renderMedia(mine) {
 // your turn: buzz and flash once when the deck reaches your part
 function checkTurn() {
   const mine = isMine();
-  if (mine && !wasMine && state) {
+  if (mine && !wasMine && state && joined) {
     buzz([180, 90, 180]);
     const f = $("flash"); f.classList.remove("go"); void f.offsetWidth; f.classList.add("go");
   }
   wasMine = mine;
+}
+
+/* ------------------------------------------------------------------ details sheet */
+
+$("more").onclick = () => { $("sheet").hidden = false; renderSheet(); };
+function closeSheet() { $("sheet").hidden = true; }
+$("sheetClose").onclick = closeSheet;
+$("sheet").onclick = (e) => { if (e.target === $("sheet")) closeSheet(); };
+function renderSheet() {
+  const open = sock && sock.readyState === 1;
+  $("dMic").textContent = micLive() ? "on" : micPerm === "denied" ? "blocked in the browser" : me ? "off" : "not used";
+  $("dConn").textContent = (!open ? "reconnecting" : deckOnline ? "live" : "deck offline") + (clock.rtt != null ? ` · ${clock.rtt} ms` : "");
+  const t = take, age = t && t.lastOk ? Math.round((Date.now() - t.lastOk) / 1000) : null;
+  $("dRec").textContent = !recording() ? (t ? "stopped" : "not recording")
+    : !(recorder && recorder.state === "recording") ? "microphone not running"
+    : `${t.queue.length > 1 ? t.queue.length + " waiting · " : ""}${age === null ? "uploading…" : `saved ${age} s ago`}`;
+  $("dBat").textContent = battery ? `${Math.round(battery.level * 100)}%${battery.charging ? " · charging" : ""}` : "unknown";
+  $("change").disabled = recording();
 }
 
 /* ------------------------------------------------------------------ microphone */
@@ -336,11 +451,6 @@ function checkTurn() {
 // numbers only) and the local recording. Processing is off by default for the cleanest voice,
 // which is why headphones are required: the phone must not hear the call.
 let mic = null, micPerm = "unknown", levelOn = false;
-const hp = $("hp"), meet = $("meet");
-hp.checked = store.get("remoteHeadphones", false);
-meet.checked = store.get("remoteMeetOnLaptop", false);
-hp.onchange = () => { store.set("remoteHeadphones", hp.checked); renderSetup(); report(); };
-meet.onchange = () => { store.set("remoteMeetOnLaptop", meet.checked); renderSetup(); report(); };
 
 if (navigator.permissions && navigator.permissions.query) {
   navigator.permissions.query({ name: "microphone" }).then((p) => {
@@ -348,10 +458,122 @@ if (navigator.permissions && navigator.permissions.query) {
   }).catch(() => {});
 }
 
+// Mute. AUTO_MUTE (config recording.autoMute, default on): the mic is muted while it is not your part.
+// A tap on the pill flips it for now; the next change of turn goes back to automatic.
+const AUTO_MUTE = RECCFG.autoMute !== false;
+let muteOverride = null;          // null = automatic, true = muted by hand, false = live by hand
+let overrideFor = null;           // the "mine" state the override was set in
+function micMuted() {
+  if (muteOverride !== null) return muteOverride;
+  return AUTO_MUTE && !!me && !isMine();
+}
+const ICON_MIC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>';
+const ICON_MIC_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" x2="22" y1="2" y2="22"/><path d="M18.89 13.23A7.12 7.12 0 0 0 19 12v-2"/><path d="M5 10v2a7 7 0 0 0 12 5"/><path d="M15 9.34V5a3 3 0 0 0-5.68-1.33"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12"/><line x1="12" x2="12" y1="19" y2="22"/></svg>';
+const ICON_CAM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg>';
+const ICON_CAM_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.66 6H14a2 2 0 0 1 2 2v2.5l5.248-3.062A.5.5 0 0 1 22 7.87v8.196"/><path d="M16 16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2"/><path d="m2 2 20 20"/></svg>';
+let TEAM = [];
+const thumbs = {};   // part -> the last small picture of a teammate's camera (about one per second)
+function applyMute() {
+  const m = micMuted();
+  if (mic && mic.gain) mic.gain.gain.setTargetAtTime(m ? 0 : 1, mic.ctx.currentTime, 0.03);
+  const b = $("micBtn");
+  if (!b) return;
+  const live = micLive();
+  b.className = "mic" + (!live ? " none" : m ? " off" : "");
+  b.innerHTML = live && !m ? ICON_MIC : ICON_MIC_OFF;
+  if (!live || m) b.style.setProperty("--lv", 0);
+  b.setAttribute("aria-label", !live ? "Microphone off. Tap to turn it on" : m ? "Muted. Tap to unmute" : "Microphone on. Tap to mute");
+  b.setAttribute("aria-pressed", String(live && m));
+  const note = $("muteNote");
+  note.hidden = !(me > 0 && joined);
+  note.className = "mute-note" + (live && m && isMine() ? " on" : "");
+  note.textContent = !live ? "Microphone off · tap the button to turn it on"
+    : m ? (isMine() ? "You are muted on your part · tap to unmute" : muteOverride === null ? "Muted: not your part · tap to talk anyway" : "Muted")
+    : isMine() ? "Mic on" : "Mic on out of turn · your chip lights up on the deck";
+}
+/* ---- camera: a round face on the deck's speaker chip. The phone sends small JPEG frames (CAM.fps a second,
+   CAM.size px square) through the WebSocket; the decks show them, the OBS deck records them with the slides. */
+const CAM = Object.assign({ fps: 15, size: 192, quality: 0.62 }, typeof RECCFG.camera === "object" ? RECCFG.camera : {});
+const CAM_ON = RECCFG.camera === true || (typeof RECCFG.camera === "object" && RECCFG.camera.enabled !== false);
+let cam = null, camWanted = true, camTimer = 0;
+const camCanvas = document.createElement("canvas");
+const camLive = () => !!(cam && cam.stream.getVideoTracks().some((t) => t.readyState === "live"));
+async function openCam() {
+  if (!CAM_ON || camLive()) return;
+  const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 480 }, height: { ideal: 480 }, frameRate: { ideal: 24, max: 30 } } });
+  const video = $("selfView");
+  video.srcObject = stream;
+  await video.play().catch(() => {});
+  cam = { stream, video };
+  stream.getVideoTracks().forEach((t) => t.addEventListener("ended", () => { applyCam(); report(); }));
+  startFrames(); applyCam();
+}
+function closeCam() {
+  if (!cam) return;
+  cam.stream.getTracks().forEach((t) => t.stop());
+  $("selfView").srcObject = null; cam = null; applyCam();
+}
+function startFrames() {
+  clearInterval(camTimer);
+  camCanvas.width = camCanvas.height = CAM.size;
+  const g = camCanvas.getContext("2d");
+  camTimer = setInterval(() => {
+    if (!camLive() || !camWanted || document.hidden || !sock || sock.readyState !== 1 || !me) return;
+    if (sock.bufferedAmount > 96 * 1024) return;     // a slow link: drop frames instead of piling them up
+    const v = cam.video, w = v.videoWidth, h = v.videoHeight;
+    if (!w || !h) return;
+    const side = Math.min(w, h);
+    g.drawImage(v, (w - side) / 2, (h - side) / 2, side, side, 0, 0, CAM.size, CAM.size);
+    sock.send(JSON.stringify({ type: "frame", part: me, t: Date.now(), data: camCanvas.toDataURL("image/jpeg", CAM.quality) }));
+  }, Math.round(1000 / Math.max(1, Math.min(30, CAM.fps))));
+}
+function applyCam() {
+  const b = $("camBtn");
+  if (!b) return;
+  b.hidden = !(CAM_ON && me > 0 && joined);
+  const live = camLive(), on = live && camWanted;
+  b.className = "cam" + (on ? " on" : !live ? " none" : " off");
+  b.querySelector("svg")?.remove();
+  b.insertAdjacentHTML("beforeend", on ? ICON_CAM : ICON_CAM_OFF);
+  $("selfView").style.visibility = on ? "visible" : "hidden";
+  b.setAttribute("aria-label", !live ? "Camera off. Tap to turn it on" : on ? "Camera on. Tap to turn it off" : "Camera off. Tap to turn it on");
+  // camera off: the track pauses (the deck shows the initials again)
+  if (cam) cam.stream.getVideoTracks().forEach((t) => { t.enabled = on; });
+}
+
+function renderTeam() {
+  const box = $("team");
+  if (!box) return;
+  box.hidden = !(joined || me === 0) || !TEAM.length;
+  $("micBtn").hidden = !(me > 0);
+  const turn = state && SCENES[state.index] ? SCENES[state.index].part : -1;
+  $("mates").innerHTML = "";
+  for (const p of TEAM) {
+    if (p.part === me) continue;
+    const el = document.createElement("div");
+    const kind = !p.online ? "gone" : !p.micOn ? "nomic" : p.muted ? "muted" : "live";
+    el.className = `mate ${kind}` + (p.part === turn ? " turn" : "") + (p.talking ? " talking" : "");
+    const face = document.createElement("span"); face.className = "face";
+    face.textContent = p.name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+    if (p.cam && thumbs[p.part]) { const im = document.createElement("img"); im.src = thumbs[p.part]; im.alt = ""; face.append(im); }
+    const badge = document.createElement("span"); badge.className = "badge"; badge.innerHTML = kind === "live" ? ICON_MIC : ICON_MIC_OFF;
+    face.append(badge); el.append(face);
+    const n = document.createElement("b"); n.textContent = p.name; el.append(n);
+    el.title = `${p.name}: ${kind === "gone" ? "not connected" : kind === "nomic" ? "microphone off" : kind === "muted" ? "muted" : p.talking ? "talking" : "mic on"}`;
+    $("mates").append(el);
+  }
+}
+function turnChanged() {
+  // a change of turn ends a manual override
+  if (muteOverride !== null && overrideFor !== isMine()) muteOverride = null;
+  applyMute();
+}
+
 const micLive = () => !!(mic && mic.stream.getAudioTracks().some((t) => t.readyState === "live"));
 async function openMic() {
   if (micLive()) { if (mic.ctx.state === "suspended") mic.ctx.resume().catch(() => {}); return mic; }
   if (mic) closeMic();
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw Object.assign(new Error("no getUserMedia"), { name: "NotSupportedError" });
   const processing = !!RECCFG.processing;
   const stream = await navigator.mediaDevices.getUserMedia({ audio: {
     channelCount: 1, sampleRate: 48000, echoCancellation: processing, noiseSuppression: processing, autoGainControl: processing } });
@@ -359,7 +581,14 @@ async function openMic() {
   const ctx = new (window.AudioContext || window.webkitAudioContext)();
   await ctx.resume().catch(() => {});
   const an = ctx.createAnalyser(); an.fftSize = 1024;
-  ctx.createMediaStreamSource(stream).connect(an);
+  // mute = gain 0: the level (speaker chip) and the recording go silent, but the recorder keeps running,
+  // so this phone's track stays in sync with the others in the mix
+  const gain = ctx.createGain();
+  gain.gain.value = micMuted() ? 0 : 1;
+  const out = ctx.createMediaStreamDestination ? ctx.createMediaStreamDestination() : null;
+  ctx.createMediaStreamSource(stream).connect(gain);
+  gain.connect(an);
+  if (out) gain.connect(out);
   const buf = new Float32Array(an.fftSize);
   let smooth = 0;
   const timer = setInterval(() => {
@@ -367,43 +596,70 @@ async function openMic() {
     let sum = 0; for (const x of buf) sum += x * x;
     const v = Math.min(1, Math.sqrt(sum / buf.length) * 7);
     smooth = v > smooth ? v : smooth * 0.82 + v * 0.18;
-    $("micLv").style.width = Math.round(smooth * 100) + "%";
-    if ((levelOn || recording()) && sock && sock.readyState === 1 && me) sock.send(JSON.stringify({ type: "level", part: me, v: Math.round(smooth * 100) / 100 }));
+    $("lv").style.width = Math.round(smooth * 100) + "%";
+    if (!micMuted()) $("micBtn").style.setProperty("--lv", Math.min(1, smooth * 1.6).toFixed(2));
+    if ((levelOn || recording()) && sock && sock.readyState === 1 && me) sock.send(JSON.stringify({ type: "level", part: me, v: micMuted() ? 0 : Math.round(smooth * 100) / 100 }));
   }, 100);
   stream.getAudioTracks().forEach((t) => t.addEventListener("ended", () => { render(); report(); }));
-  mic = { stream, ctx, timer };
+  mic = { stream, ctx, timer, gain, out };
+  applyMute();
   return mic;
 }
 function closeMic() {
   if (!mic) return;
   clearInterval(mic.timer); mic.stream.getTracks().forEach((t) => t.stop()); mic.ctx.close().catch(() => {});
-  mic = null; $("micLv").style.width = "0";
+  mic = null; $("lv").style.width = "0";
 }
-async function toggleMic() {
-  if (levelOn) { levelOn = false; if (!recording()) closeMic(); }
-  else {
-    try { await openMic(); levelOn = true; $("micText").textContent = "Mic"; }
-    catch (e) { if (e && e.name === "NotAllowedError") micPerm = "denied"; $("micText").textContent = "Mic blocked"; }
-  }
-  $("mic").classList.toggle("on", levelOn); $("mic").setAttribute("aria-pressed", String(levelOn));
-  render(); report();
-}
-$("mic").onclick = toggleMic;
-$("micTest").onclick = async (e) => { e.preventDefault(); if (!levelOn) await toggleMic(); };
 
-function setupDone() { return micPerm === "granted" && hp.checked && meet.checked; }
-function renderSetup() {
-  const show = !!me && !recording();
-  $("setup").hidden = !show;
-  if (!show) return;
-  const ok = micPerm === "granted";
-  $("micState").textContent = ok ? (levelOn ? "Microphone: on" : "Microphone: allowed") : micPerm === "denied" ? "Microphone: blocked in the browser settings" : "Microphone: not allowed yet";
-  $("micState").className = ok ? "ok" : "warn";
-  $("micTest").hidden = levelOn;
-  $("micTest").textContent = ok ? "Turn on" : "Allow";
-  $("setupSum").textContent = setupDone() ? "Ready to record ✓" : "Before the recording (3 checks)";
-  if (!setupDone() && !$("setup").dataset.opened) { $("setup").open = true; $("setup").dataset.opened = "1"; }
-}
+$("camBtn").onclick = async () => {
+  if (!camLive()) {
+    camWanted = true;
+    try { await openCam(); } catch (e) { showAlert("Camera blocked", "Allow the camera for this site (iPhone: aA → Website Settings; Android: the lock icon → Permissions), then tap the camera again.", "OK"); }
+  } else camWanted = !camWanted;
+  buzz(12); applyCam(); report();
+};
+$("micBtn").onclick = async () => {
+  if (!micLive()) {
+    // no microphone yet (or it stopped): the button turns it on, like the red warning
+    try { await openMic(); levelOn = true; } catch (e) { if (e && e.name === "NotAllowedError") micPerm = "denied"; }
+    if (recording() && !(recorder && recorder.state === "recording")) await startTake();
+    render(); report(); return;
+  }
+  muteOverride = !micMuted();
+  overrideFor = isMine();
+  buzz(12);
+  applyMute(); report();
+};
+
+// "I'm ready": the one tap. It asks for the microphone (needs this tap), turns on the level, keeps the screen on,
+// and confirms headphones + the call on the laptop (the line above the button).
+$("ready").onclick = async () => {
+  const btn = $("ready"), err = $("joinErr");
+  btn.disabled = true; btn.textContent = "Allow the microphone…"; err.hidden = true;
+  try {
+    await openMic();
+    levelOn = true; joined = true; buzz(30);
+    if (CAM_ON) { btn.textContent = "Allow the camera…"; await openCam().catch(() => {}); }
+  } catch (e) {
+    const name = e && e.name;
+    if (name === "NotAllowedError") micPerm = "denied";
+    err.textContent = name === "NotAllowedError"
+      ? "The microphone is blocked. Allow it for this site (iPhone: aA in the address bar → Website Settings; Android: the lock icon → Permissions), then tap again."
+      : name === "NotSupportedError" ? "This browser cannot use the microphone here. Use Chrome on Android or Safari on iPhone."
+      : name === "NotReadableError" ? "Another app is using the microphone (a call on this phone?). Close it, then tap again."
+      : "The microphone did not start: " + (e && e.message || e) + ". Tap again.";
+    err.hidden = false;
+    $("noMic").hidden = false;
+  }
+  btn.disabled = false; btn.textContent = "I'm ready";
+  wake(); render(); report();
+};
+$("micWarn").onclick = async () => {
+  try { await openMic(); } catch (e) { if (e && e.name === "NotAllowedError") micPerm = "denied"; }
+  if (recording() && !(recorder && recorder.state === "recording")) await startTake();
+  render(); report();
+};
+$("noMic").onclick = () => { joined = true; levelOn = false; render(); report(); };
 
 /* ------------------------------------------------------------------ local recording (double-ender) */
 
@@ -428,12 +684,16 @@ async function startTake() {
     showAlert("Tap to join the recording", "The browser needs one tap to use the microphone.", "Start my microphone", startTake);
     return;
   }
+  joined = true;
   const mime = pickMime();
   if (mime === null) { showAlert("This browser cannot record", "Use Chrome on Android or Safari 14.5+ on iPhone. The deck still works.", "OK"); return; }
   const opts = { audioBitsPerSecond: Number(RECCFG.bitrate || 128000) };
   if (mime) opts.mimeType = mime;
   let r;
-  try { r = new MediaRecorder(mic.stream, opts); } catch { r = new MediaRecorder(mic.stream); }
+  // record the stream after the mute gain (falls back to the raw mic where a browser cannot record WebAudio)
+  const src = mic.out ? mic.out.stream : mic.stream;
+  try { r = new MediaRecorder(src, opts); }
+  catch { try { r = new MediaRecorder(src); } catch { r = new MediaRecorder(mic.stream); } }
   const t = { id: rid(), session: recSession, seq: 0, queue: [], bytes: 0, lastOk: 0, t0: null, mime: r.mimeType || mime || "", busy: false };
   take = t; recorder = r;
   r.ondataavailable = (e) => { if (e.data && e.data.size) { t.queue.push({ seq: t.seq++, blob: e.data }); pump(t); } };
@@ -447,7 +707,8 @@ async function startTake() {
 function stopTake() {
   if (recorder && recorder.state !== "inactive") { try { recorder.stop(); } catch {} }
   recorder = null;
-  if (!levelOn) setTimeout(() => { if (!recording()) closeMic(); }, 1500);
+  // re-checked when the timer fires: "I'm ready" may have turned the level on in the meantime
+  if (!levelOn) setTimeout(() => { if (!recording() && !levelOn) closeMic(); }, 1500);
 }
 
 // uploads in order and retries with backoff; the server answers 409 with the chunk it expects
@@ -482,6 +743,7 @@ function onRec(m) {
   recState = m.state; recSession = m.session || recSession;
   if (m.state === "countdown" && prev !== "countdown") {
     buzz(60);
+    closeSheet();
     if (me) startTake();      // start now, so the beep is inside the recording
     countdown(m.countdownMs || 3000);
   } else if (m.state === "recording") {
@@ -490,7 +752,7 @@ function onRec(m) {
   } else if (m.state === "stopped" || m.state === "idle") {
     $("count").hidden = true;
     if (prev === "recording" || prev === "countdown") buzz([60, 60, 60]);
-    stopTake();
+    if (recorder) stopTake();
   }
   render(); report();
 }
@@ -508,18 +770,19 @@ function countdown(ms) {
   tick(); countTimer = setInterval(tick, 100);
 }
 
+// the REC badge in the top bar: elapsed time while the recorder runs, a red outline when it does not
 function renderRec() {
   const on = recording() && !!me;
-  $("recbar").hidden = !on;
+  const pill = $("recPill");
+  pill.hidden = !on;
   if (!on) return;
-  const t = take;
+  const t = take, ok = recorder && recorder.state === "recording";
   const s = t && t.t0 ? Math.floor((Date.now() - t.t0) / 1000) : 0;
-  const ok = recorder && recorder.state === "recording";
-  $("recText").textContent = ok ? `REC ${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}` : "REC: microphone not running";
-  const age = t && t.lastOk ? Math.round((Date.now() - t.lastOk) / 1000) : null;
-  $("recUp").textContent = !t ? "" : t.queue.length > 1 ? `${t.queue.length} waiting` : age === null ? "uploading…" : `saved ${age}s ago`;
+  const stale = t && t.lastOk && Date.now() - t.lastOk > 12000;
+  pill.className = "pill rec" + (ok && !stale ? "" : " bad");
+  pill.textContent = !ok ? "● REC: mic off" : stale ? "● REC: not saving" : `● ${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
-setInterval(() => { if (recording()) renderRec(); }, 1000);
+setInterval(() => { if (recording()) renderRec(); if (!$("sheet").hidden) renderSheet(); }, 1000);
 
 // Mobile browsers pause the page (and often the recorder) in the background or with the screen locked.
 // Leaving is logged as a gap in timeline.json; on return the recording resumes as a new take.
@@ -531,6 +794,8 @@ document.addEventListener("visibilitychange", () => {
     return;
   }
   lock = null; wake();
+  // iPhone stops the camera in the background: back on the page, turn it on again
+  if (CAM_ON && joined && camWanted && cam && !camLive()) { closeCam(); openCam().catch(() => {}); }
   if (!sock || sock.readyState > 1) { retry = 0; connect(); }
   else if (sock.readyState === 1) send("hello");
   if (recording() && me && hiddenAt) {
@@ -542,8 +807,8 @@ document.addEventListener("visibilitychange", () => {
     })();
     hiddenAt = 0;
     buzz([200, 100, 200]);
-    showAlert("You left the remote during the recording",
-      `For ${Math.round(away / 1000)} s your phone may not have recorded. It is recording again now. Keep this page open and the screen on until the lead stops.`, "Got it");
+    showAlert("You left the page during the recording",
+      `For ${Math.round(away / 1000)} s your phone may not have recorded. It records again now. Keep this page open with the screen on until the lead stops.`, "Got it");
   }
   hiddenAt = 0;
   report();
@@ -558,7 +823,7 @@ function showAlert(h, p, btn, action) {
   $("alertBtn").onclick = () => { $("alert").hidden = true; wake(); if (action) action(); };
 }
 
-/* ------------------------------------------------------------------ phone health for the pre-flight page */
+/* ------------------------------------------------------------------ phone health for the control page */
 
 let battery = null;
 if (navigator.getBattery) navigator.getBattery().then((b) => { battery = b; b.onlevelchange = b.onchargingchange = report; report(); }).catch(() => {});
@@ -566,7 +831,8 @@ function report() {
   if (!sock || sock.readyState !== 1 || me === null || me === undefined) return;
   sock.send(JSON.stringify({ type: "status", part: me,
     battery: battery ? Math.round(battery.level * 100) : null, charging: battery ? battery.charging : null,
-    mic: micPerm, micOn: micLive(), headphones: hp.checked && meet.checked,
+    // "headphones" = the speaker tapped I'm ready under "Laptop on the call, headphones on"
+    mic: micPerm, micOn: micLive(), muted: micMuted(), cam: camLive() && camWanted, headphones: joined && levelOn,
     recording: !!(recorder && recorder.state === "recording"), hidden: document.visibilityState === "hidden",
     queue: take ? take.queue.length : 0, rtt: clock.rtt, offset: clock.offset, mime: take ? take.mime : pickMime() }));
 }
@@ -585,10 +851,9 @@ function press(cmd) {
 }
 $("fwd").onclick = () => press("next");
 $("back").onclick = () => press("prev");
-$("replay").onclick = () => send("replay");
 // a Bluetooth clicker or keyboard paired with the phone
 document.addEventListener("keydown", (e) => {
-  if ($("fwd").disabled || e.target.tagName === "INPUT") return;
+  if ($("talk").hidden || $("fwd").disabled) return;
   if (["ArrowRight", "PageDown", " ", "Enter"].includes(e.key)) { e.preventDefault(); press("next"); }
   if (["ArrowLeft", "PageUp"].includes(e.key)) { e.preventDefault(); press("prev"); }
 });
@@ -629,6 +894,8 @@ function connect() {
     else if (m.type === "deck") deckOnline = m.online;
     else if (m.type === "scenes") { SCENES = m.scenes || []; if (m.speakers) SPEAKERS = m.speakers; flatten(); buildPicker(); wasMine = isMine(); }
     else if (m.type === "rec") onRec(m);
+    else if (m.type === "team") { TEAM = m.list || []; renderTeam(); return; }
+    else if (m.type === "thumb") { thumbs[m.part] = m.data; renderTeam(); return; }
     render();
   };
   s.onclose = () => {

@@ -5,7 +5,9 @@
 // Builds a throwaway deck project in a temp folder (dist-single, media, src/scenes, remote/),
 // starts the server there and checks: HTTP keys, Range serving, path traversal, relay, lead
 // enforcement, late-join sync, part enforcement, debounce, level relay, ping/pong clock, heartbeat,
-// recording (countdown, beep, chunk uploads, duplicates, order, takes, gaps, timeline.json).
+// recording (countdown, beep, chunk uploads, duplicates, order, takes, gaps, timeline.json), the /api for
+// start.py and its helper (status, rec, mix jobs, open folder), Ctrl+R from the lead deck's overlay.
+// OBS is not running here: REC takes the manual path (test-obs.mjs covers obs-websocket).
 // With MIX_TEST=1 it also uploads ffmpeg-made tone files and runs mix.py on them (needs ffmpeg, python3).
 import { createRequire } from "node:module";
 import { spawn, spawnSync } from "node:child_process";
@@ -41,7 +43,7 @@ writeFileSync(join(root, "remote/config.json"), JSON.stringify({
 const PORT = 18000 + Math.floor(Math.random() * 1000);
 const KEY = "testkey123", LEAD = "leadkey456";
 const srv = spawn(process.execPath, [join(root, "remote/server.mjs")], {
-  env: { ...process.env, PORT: String(PORT), REMOTE_KEY: KEY, LEAD_KEY: LEAD, HEARTBEAT_MS: "400" }, stdio: ["ignore", "pipe", "pipe"],
+  env: { ...process.env, PORT: String(PORT), REMOTE_KEY: KEY, LEAD_KEY: LEAD, HEARTBEAT_MS: "400", OBS_URL: "ws://127.0.0.1:9", UPLOAD_SETTLE_MS: "300" }, stdio: ["ignore", "pipe", "pipe"],
 });
 let srvOut = "";
 srv.stdout.on("data", (d) => { srvOut += d; });
@@ -85,6 +87,15 @@ r = await get(`/preflight?k=${KEY}&lead=${LEAD}`);
 assert.equal(r.status, 200);
 assert.ok((await r.text()).includes('"media":["clip.bin"]'));
 ok("pre-flight page needs the lead key and lists media");
+
+for (const p of ["/api/status", `/api/status?k=${KEY}`, `/api/status?k=${KEY}&lead=nope`, `/api/helper?k=bad&lead=${LEAD}`]) assert.equal((await get(p)).status, 403, p);
+r = await get(`/api/status?k=${KEY}&lead=${LEAD}`);
+assert.equal(r.status, 200);
+let api = await r.json();
+assert.equal(api.type, "status"); assert.equal(api.rec.state, "idle"); assert.ok(["connecting", "not-found"].includes(api.obs.state), api.obs.state);
+assert.equal(api.mix, null); assert.equal(api.helper.online, false); assert.equal(api.consoles, 0);
+assert.equal((await get(`/api/nope?k=${KEY}&lead=${LEAD}`)).status, 404);
+ok("/api needs the lead key; status JSON with OBS (not running here), mix, helper");
 
 r = await get("/media/clip.bin");
 assert.equal(r.status, 200); assert.equal(r.headers.get("accept-ranges"), "bytes"); assert.equal((await r.arrayBuffer()).byteLength, 1000);
@@ -192,6 +203,23 @@ assert.deepEqual(F.take("level"), [{ type: "level", part: 2, v: 0.46 }]);
 assert.equal(L.take("level").length, 1);
 ok("voice level relayed to decks (rounded); bad part or value dropped");
 
+{
+  const jpeg = "data:image/jpeg;base64," + "A".repeat(400);
+  R1.take(); R2.take();
+  R2.json({ type: "frame", part: 2, t: Date.now(), data: jpeg });
+  R2.json({ type: "frame", part: 2, t: Date.now(), data: jpeg });            // under 30 ms after: dropped
+  R2.json({ type: "frame", part: 9, t: Date.now(), data: jpeg });            // no such part
+  R2.json({ type: "frame", part: 2, t: Date.now(), data: "data:text/html,<b>" });
+  await settle();
+  assert.deepEqual(F.take("frame"), [{ type: "frame", part: 2, data: jpeg }]);
+  assert.equal(L.take("frame").length, 1);
+  assert.equal(R1.take("thumb").length, 1, "the other phone gets a thumbnail");
+  assert.equal(R2.take("thumb").length, 0, "not the sender");
+  const team = R1.take("team").pop();
+  assert.ok(team && team.list.find((x) => x.part === 2)?.cam, "the team list says part 2 has a camera");
+  ok("camera frames: to the decks, a thumbnail to the other phones, JPEG only, throttled; team shows the camera");
+}
+
 const t = Date.now();
 R1.json({ type: "ping", t }); await settle();
 const pong = R1.take("pong")[0];
@@ -216,6 +244,7 @@ assert.equal(st.lead.decks, 1); assert.equal(st.decks.obs, 1); assert.equal(st.d
 assert.deepEqual(st.speakers.map((s) => [s.name, s.connected, s.mic, s.micOn, s.headphones, s.battery]),
   [["Alex", true, "granted", true, true, 81], ["Sam", true, "prompt", false, false, 15]]);
 assert.deepEqual(st.media, ["clip.bin"]);
+assert.equal(st.consoles, 1); assert.equal(st.obs.state, "not-found"); assert.equal(st.starting, false);
 R1.json({ type: "level", part: 1, v: 0.3 }); await settle();
 assert.equal(C.take("level").length, 1);
 ok("console status: lead, OBS overlay, decks, speakers' phone health, media; levels reach the console");
@@ -231,7 +260,7 @@ await sleep(400);
 const go = O.take("rec")[0];
 assert.equal(go.state, "recording"); assert.equal(go.beep, true); assert.ok(go.beepAt >= cd.at + 290);
 assert.equal(R1.take("rec")[0].state, "recording");
-ok("REC: console starts, phones count down, overlay gets the beep after the countdown");
+ok("REC: console starts, phones count down, overlay gets the beep after the countdown (OBS not found: manual path)");
 
 const session = cd.session;
 const up = (q, body) => fetch(`${base}/upload?k=${KEY}&session=${session}&${q}`, { method: "POST", body });
@@ -264,6 +293,9 @@ assert.equal(alex.takes, 2); assert.equal(alex.bytes, 14); assert.ok(alex.lastCh
 assert.equal(C.take("gap").length, 1);
 C.json({ type: "rec", action: "stop" }); await settle();
 assert.equal(R1.take("rec").at(-1).state, "stopped");
+const hget = async () => (await get(`/api/helper?k=${KEY}&lead=${LEAD}`)).json();
+let h = await hget();
+assert.equal(h.session, session); assert.equal(h.state, "stopped"); assert.equal(h.mix.state, "waiting", "the mix waits for the last uploads");
 assert.equal((await up(`part=2&take=cccc3333&seq=1`, Buffer.from("!"))).status, 200, "the last chunk after stop is kept");
 await sleep(600);
 const tl = JSON.parse(readFileSync(join(dir, "timeline.json"), "utf8"));
@@ -276,7 +308,38 @@ const types = tl.events.map((e) => e.type);
 assert.deepEqual(types.filter((x) => x !== "scene"), ["start", "beep", "gap", "stop"]);
 assert.ok(tl.events.some((e) => e.type === "scene" && e.id === "end" && e.step === 1));
 assert.ok(tl.events.find((e) => e.type === "gap").estAt > 0);
+assert.equal(tl.obs, null, "no OBS file without obs-websocket");
 ok("timeline.json: start, beep, scene steps, gap, stop, tracks with clock offsets");
+
+// the helper: the mix becomes pending once the uploads settled (alex's newest take got nothing after Stop: 4 x settle cap)
+for (let i = 0; i < 30 && (h = await hget()).mix.state !== "pending"; i++) await sleep(100);
+assert.equal(h.mix.state, "pending");
+let pst = await (await get(`/api/status?k=${KEY}&lead=${LEAD}`)).json();
+assert.equal(pst.helper.online, true, "a helper poll marks it online");
+const hpost = (body) => fetch(`${base}/api/helper?k=${KEY}&lead=${LEAD}`, { method: "POST", body: JSON.stringify(body) });
+assert.equal((await hpost({ session: "other", mix: { state: "done", path: "/x" } })).status, 200);
+assert.equal((await hget()).mix.state, "pending", "a post for another session is ignored");
+await hpost({ session, mix: { state: "mixing", note: "mixing", folder: "/rec/" + session } });
+await sleep(1100);
+assert.equal(C.take("status").at(-1).mix.state, "mixing");
+await hpost({ session, mix: { state: "done", path: "/rec/final.mp4", voices: "/rec/voices.wav", evil: "x" } });
+pst = await (await get(`/api/status?k=${KEY}&lead=${LEAD}`)).json();
+assert.deepEqual(pst.mix, { state: "done", path: "/rec/final.mp4", voices: "/rec/voices.wav" });
+C.json({ type: "open", what: "folder" }); await settle();
+assert.deepEqual((await hget()).jobs, [{ open: session, what: "folder" }]);
+assert.deepEqual((await hget()).jobs, [], "jobs are handed out once");
+ok("helper API: mix waits for uploads, then pending; progress shown to the console; open-folder job");
+
+// Ctrl+R in the lead deck: the lead overlay may start and stop, the OBS overlay may not
+const OL = client(`role=overlay&kind=lead&k=${KEY}&lead=${LEAD}`); await OL.ready;
+O.json({ type: "rec", action: "toggle" }); await settle();
+assert.equal((await hget()).state, "stopped", "the OBS overlay cannot start");
+OL.json({ type: "rec", action: "toggle" }); await settle();
+assert.equal((await hget()).state, "countdown");
+r = await fetch(`${base}/api/rec?k=${KEY}&lead=${LEAD}&action=stop`, { method: "POST" });
+assert.equal((await r.json()).rec.state, "stopped");
+OL.close();
+ok("Ctrl+R from the lead deck toggles REC; the OBS overlay cannot; POST /api/rec stops (npm run stop)");
 
 /* ------------------------------------------------------------------ optional: real audio through mix.py */
 
@@ -294,8 +357,8 @@ if (process.env.MIX_TEST) {
     "-c:v", "libx264", "-preset", "ultrafast", "-c:a", "aac", join(work, "obs.mkv")]);
 
   C.json({ type: "rec", action: "start" }); await sleep(500);
-  const tl2 = (await (async () => { for (let i = 0; i < 20; i++) { const s = C.take("status").at(-1); if (s?.rec?.state === "recording" && s.rec.session !== session) return s.rec; await sleep(200); } })());
-  assert.ok(tl2?.beepAt, "no beep");
+  const tl2 = (await (async () => { for (let i = 0; i < 50; i++) { const s = await (await get(`/api/status?k=${KEY}&lead=${LEAD}`)).json(); if (s?.rec?.state === "recording" && s.rec.session !== session) return s.rec; await sleep(100); } })());
+  assert.ok(tl2?.beepAt, "no beep: " + JSON.stringify(C.msgs.slice(-3)) + srvOut.slice(-600));
   // speaker 1 started 1.0 s before the beep, speaker 2 0.5 s after (clock offsets 120 and -80 ms)
   const send = async (part, file, startServer, off) => {
     const buf = readFileSync(join(work, file)); const n = 3, size = Math.ceil(buf.length / n);
@@ -313,12 +376,13 @@ if (process.env.MIX_TEST) {
     const x = spawnSync("ffmpeg", ["-hide_banner", "-nostats", "-i", file, "-af", "silencedetect=noise=-35dB:d=0.1", "-f", "null", "-"], { encoding: "utf8" });
     return [...x.stderr.matchAll(/silence_end: ([\d.]+)/g)].map((m) => Number(m[1]));
   };
-  let x = spawnSync("python3", [join(root, "remote/mix.py"), sdir], { encoding: "utf8" });
+  const mixEnv = { ...process.env, OBS_VIDEO_DIRS: "" };   // no guessing in the real ~/Videos here
+  let x = spawnSync("python3", [join(root, "remote/mix.py"), sdir], { encoding: "utf8", env: mixEnv });
   assert.equal(x.status, 0, x.stdout + x.stderr);
   // no video: the earliest take (speaker 1) starts at 0 → tones at 2.0 and 1.5 + 2.0 = 3.5
   const v = onsets(join(sdir, "voices.wav"));
   assert.ok(Math.abs(v[0] - 2.0) < 0.06 && Math.abs(v[1] - 3.5) < 0.06, "voices onsets " + v);
-  x = spawnSync("python3", [join(root, "remote/mix.py"), sdir, "--video", join(work, "obs.mkv")], { encoding: "utf8" });
+  x = spawnSync("python3", [join(root, "remote/mix.py"), sdir, "--video", join(work, "obs.mkv")], { encoding: "utf8", env: mixEnv });
   assert.equal(x.status, 0, x.stdout + x.stderr);
   assert.match(x.stdout, /Sync beep in the video at 1\.5/);
   // beep at 1.5 → speaker 1 at 0.5 (tone 2.5), speaker 2 at 2.0 (tone 4.0)
@@ -326,6 +390,9 @@ if (process.env.MIX_TEST) {
   assert.ok(Math.abs(f[0] - 1.5) < 0.06 && Math.abs(f[1] - 2.5) < 0.06 && Math.abs(f[2] - 4.0) < 0.06, "final onsets " + f);
   const probe = spawnSync("ffprobe", ["-v", "error", "-show_entries", "stream=codec_type,codec_name", "-of", "csv=p=0", join(sdir, "final.mp4")], { encoding: "utf8" }).stdout;
   assert.match(probe, /h264,video/); assert.match(probe, /aac,audio/);
+  // with the video, voices.wav is on the video's timeline too (no deck audio, no beep)
+  const vw = onsets(join(sdir, "voices.wav"));
+  assert.ok(Math.abs(vw[0] - 2.5) < 0.06 && Math.abs(vw[1] - 4.0) < 0.06, "voices.wav with video " + vw);
   ok(`mix.py aligns real opus takes by timeline.json (voices ${v.map((n) => n.toFixed(2))}, video ${f.map((n) => n.toFixed(2))})`);
 }
 

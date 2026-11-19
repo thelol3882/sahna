@@ -1,64 +1,62 @@
 # Recording the talk
 
-Meet screen sharing drops frames, and a voice that goes through a call loses quality. The setup below avoids both: OBS draws the deck itself, and the voices are recorded on each speaker's phone, then mixed under the video.
+OBS records the deck itself (no screen share), and every speaker's voice is recorded on their own phone, then mixed under the video. The call (Meet, Zoom, Discord) is only for hearing each other. It is never recorded.
 
-Everyone talks on any call (Meet, Zoom, Discord) to hear each other, but the call is never recorded. If you are all in the same room, you can skip the call.
+## Once, before the first take (lead, about 5 minutes)
 
-## One command
+1. **OBS 28 or newer: the first `npm run record` asks** "Use OBS automation? [Y/n]". Say yes, then in OBS: Tools → WebSocket Server Settings → tick *Enable WebSocket server* → Apply → *Show Connect Info*, and paste the Server Password into the terminal. It checks the password against OBS and saves it to `remote/config.local.json` (git ignores it). Change it any time with `npm run obs`. Windows may ask to let OBS through the firewall: allow it, because Docker reaches OBS through it.
+2. Run `npm run record` once, then in OBS: **Profile → Import** → `remote/obs-profile` (switch to it) and **Scene Collection → Import** → `remote/obs-scene-collection.json` (switch to it). You never re-import: every start writes the new deck link into the *Deck (browser)* source by itself.
+3. ffmpeg must be installed for the automatic mix: `winget install Gyan.FFmpeg` (macOS: `brew install ffmpeg`).
 
-```bash
-npm run record          # = python remote/start.py --record
-```
-
-It builds the deck if needed, starts the remote (Docker if it runs, else node + cloudflared), waits for the tunnel and prints:
-
-1. the **lead link**: open it on your laptop; your keys move every deck;
-2. the **OBS link**;
-3. the **pre-flight link** (REC control, lead only);
-4. a team message with every speaker's phone link, ready to paste, and a QR code for the phone link.
-
-It also writes `remote/obs-scene-collection.json` and `remote/obs-profile/`.
-
-## Rules for every speaker
-
-- **The call runs on the laptop, not on the phone with the remote.** Phones often give the microphone to one app only; a call on the same phone takes it from the recording.
-- **Headphones on.** Phone processing is off for a clean voice, so other voices from the laptop speakers would get into your track.
-- Open your phone link, tap **Mic**, allow the microphone, tick the two checks. The lead speaks into his own phone remote too, like everyone else.
-- **Keep the remote page open with the screen on** until the lead stops. The page holds a wake lock, but if you switch apps or lock the phone, the browser stops the recorder: the page shows a red warning when you come back, records again as a new take, and `timeline.json` marks the gap.
-- Phone on a charger or above 30%.
-
-## OBS (Studio 30 or newer)
-
-1. **Profile → Import** → `remote/obs-profile`, then switch to it.
-2. **Scene Collection → Import** → `remote/obs-scene-collection.json`, then switch to it. It has:
-   - **Deck (browser)**: the OBS link, 1920×1080, 60 fps, *Control audio via OBS* on, audio track 1 (deck sound and demo music);
-   - **Backup mic**: the laptop's default microphone on track 2 only, so it is not in the main mix. It is a rough fallback if a phone track fails.
-3. The key changes at every start: re-import the collection, or edit the URL in the Browser source.
-4. Check these profile settings once (if the profile import did not take, set them by hand):
-   - Settings → Video: base and output 1920×1080, 60 FPS;
-   - Settings → Output → Advanced → Recording: format **mkv**, audio tracks **1 and 2**;
-   - encoder: x264 CRF 18 is in the profile; pick a hardware encoder (NVENC, QuickSync, Apple VT) if you have one;
-   - Settings → Audio: 48 kHz.
-
-To press a key inside the OBS deck (R for the intro), right-click the source → **Interact**.
+Without step 1 everything still works: the control page says *OBS not found*, and you start and stop the OBS recording by hand.
 
 ## The take
 
-1. Open the lead link in Chrome on your laptop and the pre-flight page next to it.
-2. Wait for **READY**: every phone connected, microphones on, headphones confirmed, lead and OBS decks connected, media files reachable. Battery and viewer count only warn.
-3. Start the OBS recording, then press **Start REC for everyone**. Phones count down 3-2-1, then the OBS deck beeps and flashes white once: this is the sync clap. Stay quiet for it.
-4. Present. During the take the pre-flight page shows per speaker *saved N s ago*: a chunk arrives every 5 s, so red (over 12 s) means that phone stopped uploading. Look at the phone or ask the person.
-5. Press **Stop**, then stop OBS. Then `python remote/start.py --stop`.
-
-Files: `recordings/<session>/<speaker>.webm` (`.m4a` from iPhones; `-2`, `-3` for takes after a gap) and `timeline.json` (start, beep, every scene and step, gaps, clock offsets).
-
-## Mix
-
 ```bash
-python remote/mix.py recordings/<session> --video "<obs file>.mkv"
+npm run record
 ```
 
-It finds the beep in the OBS audio, places each phone take by its measured start, normalises each voice to -16 LUFS, mixes them with the deck audio and copies the video into `final.mp4`. If the beep is not found, listen for it and pass `--beep-at 4.20`. Without `--video` you get `voices.wav` only. Remux the mkv first (File → Remux Recordings) if your editor needs mp4.
+It starts everything (Docker if it runs, else node + cloudflared), opens **the control page** and **the lead deck** in your browser, and copies the team message with the phone links to your clipboard. Paste it into the team chat. Running it again reuses the running remote (same links). If a previous run got stuck, it is cleaned up first.
+
+1. Teammates open their link and tap **I'm ready**. Their row on the control page turns green.
+2. When the control page says **READY**, press **Start recording**. OBS starts recording, then every phone counts 3-2-1, then the OBS deck beeps and flashes once (the sync clap). Stay quiet for it. **Ctrl+R** in the lead deck does the same.
+3. Present. On the control page, a red row means that phone stopped saving: look at it or ask the person.
+4. Press **Stop** twice (the second press confirms). In the lead deck: Ctrl+R twice. The phones stop, then OBS stops, then the mix runs by itself: **MIXING…**, then **DONE** with the path and an *Open folder* button.
+
+Give the control page its own window next to the lead deck (drag the tab out), so you can see both at once.
+
+Result in `recordings/<session>/`: `final.mp4` (the OBS video with the voices, each normalised to -16 LUFS, plus the deck sound), `voices.wav` (the voices alone, on the same timeline), the phone files and `timeline.json`.
+
+```bash
+npm run links    # the links and the team message again
+npm run mix      # mix the latest take again (finds the OBS file itself)
+npm run mix -- --video "D:\Videos\take.mkv"             # another OBS file
+npm run mix -- --beep-at 4.2                            # if the beep is not found
+npm run stop     # stop everything at the end (a running take is stopped and mixed first)
+```
+
+**Every take starts on the cover.** Start jumps every deck (lead, OBS, viewers) to the cover for the countdown, and the intro plays right after the sync beep, so each take opens the same way. `"startFromCover": false` under `recording` turns it off.
+
+**Lead deck closed?** The control page says LEAD DECK CLOSED with an *Open the lead deck* button (during a take, a red bar with the same button). It opens on the slide the talk is on and does not pull the other decks back. A lead deck in a background tab keeps working; a window of its own is safer, because Chrome's Memory Saver can unload background tabs (or add the site under chrome://settings/performance → *Always keep these sites active*).
+
+**Mic and camera, as in Meet.** Each phone has a round mic button and a camera button (with your own picture) next to Back and Next, and a small chip per teammate: their face or initials, a crossed red mic when muted, an orange ring on whose turn it is, a green ring while they talk. A phone mutes itself when its speaker's part ends and unmutes when it starts, so nobody records silence by forgetting; tap the mic any time to override until the next change of turn. Muted means the chip does not light up and the voice stays out of the mix; the recording keeps running, so the tracks stay in sync. `"autoMute": false` turns the automatic part off.
+
+**Faces on the slides.** With `"camera": true` under `recording`, the speaker chip on every deck turns into the speaker's live face (and anyone else who talks gets one too). The OBS deck shows it as well, so the faces are in the recording; `npm run mix` delays the voices by the measured camera delay so lips and words match. Each phone sends about 15 small frames a second (about 1 Mbit/s); `"camera": { "fps": 10, "size": 160 }` makes it lighter on a weak connection. Camera off on the phone = the initials again.
+
+## Rules for every speaker
+
+- The call runs on the laptop, not on the phone with the remote. Headphones on.
+- Keep the remote page open with the screen on until the lead stops. If you leave it, the page shows a red card when you come back, records again, and `timeline.json` marks the gap.
+- Phone on a charger or above 30%.
+
+## For the team chat (the lead pastes this; `npm run record` also copies it, with the links)
+
+> 1. Join the call on your laptop (not on the phone) and put headphones on.
+> 2. Open your link on your phone: Chrome on Android, Safari on iPhone.
+> 3. Tap "I'm ready" and allow the microphone (and the camera, if your deck shows faces).
+> 4. Keep that page open with the screen on until the lead says stop.
+> 5. Your Next button lights up on your part: press it when the slide stops moving.
+> 6. If a red bar says the microphone stopped, tap it.
 
 ## Edit
 
@@ -66,4 +64,11 @@ Speed up the talk parts to 1.5x and keep the demo video at 1x, so the music stay
 
 ## Live online talk instead of a recording
 
-`python remote/start.py` (no `--record`). Viewers open the "Watch the deck" link from the team message in their own browser, click once (for video sound) and press F. Their decks follow the lead's slide and step; their keys do nothing, and a late joiner lands on the current slide. Phones move only the lead deck.
+`npm run remote` (no recording). Viewers open the "Watch the deck" link from the team message, click once (for video sound) and press F. Their decks follow the lead's slide and step.
+
+## When something goes wrong
+
+- **OBS not found** on the control page: OBS closed, or its WebSocket server is off. Start the OBS recording by hand before Start and stop it after Stop; the mix still finds the newest video in your Videos folder.
+- **OBS asks for a password / wrong password**: `npm run obs` and paste it again (Show Connect Info → Copy), then `npm run record -- --fresh`.
+- **MIX FAILED**: the reason is on the control page (often: ffmpeg not installed). Fix it, then `npm run mix`.
+- Anything stuck: `npm run stop`, then `npm run record`.

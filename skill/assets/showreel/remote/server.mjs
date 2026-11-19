@@ -1,16 +1,20 @@
 // Deck remote: a small relay between the deck (laptop, OBS, viewers), the speakers' phones and
 // the lead's pre-flight console. It can also collect a local recording from every phone.
 //
-//   node remote/server.mjs                       # usually started by: python remote/start.py
+//   node remote/server.mjs                       # usually started by: npm run record
 //
 // Env: REMOTE_KEY (random if missing), LEAD_KEY (no lead deck and no console if empty),
 // PORT (default from remote/config.json or 8787), HOST (default 127.0.0.1; Docker sets 0.0.0.0),
-// RECORDINGS_DIR (default <deck>/recordings).
+// RECORDINGS_DIR (default <deck>/recordings), OBS_URL / OBS_PASSWORD (override config.json "obs"),
+// OBS_DECK_URL (the OBS link: written into the OBS Browser source when OBS connects).
 //
 // Routes (protocol and formats: remote/NOTES.md):
 //   /?k=KEY[&remote][&lead=LEAD][&obs]   the built deck (dist-single/, else dist/)
 //   /remote?k=KEY#partN                  the phone remote
-//   /preflight?k=KEY&lead=LEAD           the lead's pre-flight checks and REC control
+//   /preflight?k=KEY&lead=LEAD           the lead's control page: READY, REC, OBS, mix
+//   /api/status?k=KEY&lead=LEAD          the control page's status as JSON (npm run record / stop)
+//   /api/rec?k=KEY&lead=LEAD&action=…    POST: start | stop the recording (npm run stop)
+//   /api/helper?k=KEY&lead=LEAD          GET: jobs for the host helper (mix, open folder); POST: its progress
 //   /ws?k=KEY&role=deck|remote|console|overlay
 //   POST /upload?k=KEY&session=…          a chunk of a phone recording
 //   /media/...                           files from media/ with Range support (video seeking)
@@ -18,10 +22,10 @@
 //   /healthz                             "ok"
 import { createServer } from "node:http";
 import { readFileSync, existsSync, statSync, createReadStream, readdirSync, mkdirSync, appendFileSync, writeFileSync, renameSync } from "node:fs";
-import { randomBytes } from "node:crypto";
+import { randomBytes, createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dirname, join, resolve, sep, extname } from "node:path";
-import { WebSocketServer } from "ws";
+import { WebSocketServer, WebSocket } from "ws";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = process.env.DECK_ROOT ? resolve(process.env.DECK_ROOT) : join(here, "..");
@@ -34,7 +38,13 @@ function readJson(file) {
     return null;
   }
 }
-const CONFIG = readJson(join(here, "config.json")) ?? {};
+// config.local.json (git-ignored) is merged over config.json: secrets such as the OBS password go there
+const readConfig = () => {
+  const base = readJson(join(here, "config.json")) ?? {};
+  const local = readJson(join(here, "config.local.json")) ?? {};
+  return { ...base, ...local, obs: local.obs === false || base.obs === false && !local.obs ? false : { ...(base.obs || {}), ...(local.obs || {}) } };
+};
+const CONFIG = readConfig();
 const PORT = Number(process.env.PORT ?? CONFIG.port ?? 8787);
 const HOST = process.env.HOST ?? "127.0.0.1";
 const KEY = process.env.REMOTE_KEY || randomBytes(6).toString("hex");
@@ -50,6 +60,9 @@ const HEARTBEAT_MS = Number(process.env.HEARTBEAT_MS ?? 15000);
 const MAX_MSG_BYTES = 256 * 1024;
 const MAX_CHUNK_BYTES = 32 * 1024 * 1024;
 const COUNTDOWN_MS = Number(CONFIG.recording?.countdownMs ?? 3000);
+// every take starts on the cover and plays the intro right after the sync beep (recording.startFromCover: false = off)
+const START_FROM_COVER = CONFIG.recording?.startFromCover !== false;
+const INTRO_AFTER_BEEP_MS = Number(CONFIG.recording?.introAfterBeepMs ?? 700);
 
 const DECK_DIR = ["dist-single", "dist"].map((d) => join(root, d)).find((d) => existsSync(join(d, "index.html")));
 // media folder: MEDIA_DIR env (Docker) > config.json "mediaDir" (relative to the deck project) > media/
@@ -288,6 +301,16 @@ const server = createServer(async (req, res) => {
       await upload(req, res, url.searchParams);
       return;
     }
+    if (url.pathname.startsWith("/api/")) {
+      // the laptop's own tools (start.py, its helper): lead key only
+      if (!leadOk) { sendJson(res, 403, { error: "lead key" }); return; }
+      if (url.pathname === "/api/status" && req.method === "GET") sendJson(res, 200, statusMsg());
+      else if (url.pathname === "/api/rec" && req.method === "POST") await apiRec(res, url.searchParams.get("action"));
+      else if (url.pathname === "/api/helper" && req.method === "GET") helperGet(res);
+      else if (url.pathname === "/api/helper" && req.method === "POST") await helperPost(req, res);
+      else sendJson(res, 404, { error: "no such api" });
+      return;
+    }
     if (req.method !== "GET" && req.method !== "HEAD") { res.writeHead(405).end(); return; }
     if (url.pathname === "/healthz") {
       res.writeHead(200, { "content-type": "text/plain" }).end("ok");
@@ -321,11 +344,120 @@ const server = createServer(async (req, res) => {
   }
 });
 
+/* ------------------------------------------------------------------ OBS (obs-websocket v5, built into OBS 28+) */
+
+// OBS → Tools → WebSocket Server Settings: enable it; the password goes to remote/config.local.json "obs" (git-ignored).
+// When OBS answers, Start REC starts the OBS recording first and Stop stops it (and learns the file).
+// When it does not, everything works as before: the lead starts and stops OBS by hand.
+function obsConfig() {
+  // config.json is read again on every attempt, so a password pasted while the server runs is picked up
+  const c = readConfig().obs;
+  if (c === false || process.env.OBS_URL === "off") return null;
+  return {
+    url: process.env.OBS_URL || c?.url || "ws://127.0.0.1:4455",
+    password: process.env.OBS_PASSWORD || c?.password || "",
+    source: c?.source || "Deck (browser)",
+    deckUrl: process.env.OBS_DECK_URL || "",
+  };
+}
+const OBS_RETRY_MS = Number(process.env.OBS_RETRY_MS ?? 3000);
+// state: off | connecting | not-found | auth | connected
+const obs = { state: obsConfig() ? "connecting" : "off", error: "", recording: false, version: "", source: null, ws: null,
+  seq: 0, pending: new Map(), waiters: [], timer: null, lastPath: null };
+
+function obsNote(text) { console.log("OBS: " + text); toAll(consoles, { type: "note", text: "OBS: " + text }); }
+const sha = (s) => createHash("sha256").update(s).digest("base64");
+
+function obsConnect() {
+  clearTimeout(obs.timer);
+  const cfg = obsConfig();
+  if (!cfg) { obs.state = "off"; return; }
+  let ws;
+  try { ws = new WebSocket(cfg.url, "obswebsocket.json", { handshakeTimeout: 3000 }); }
+  catch (e) { obs.state = "not-found"; obs.error = String(e.message ?? e); obs.timer = setTimeout(obsConnect, OBS_RETRY_MS); return; }
+  obs.ws = ws;
+  let identified = false, authFailed = false;
+  ws.on("error", (e) => { if (!identified) obs.error = String(e.code ?? e.message ?? e); });
+  ws.on("message", (data) => {
+    let m; try { m = JSON.parse(String(data)); } catch { return; }
+    const d = m.d ?? {};
+    if (m.op === 0) {            // Hello
+      const ident = { rpcVersion: 1, eventSubscriptions: 1 << 6 };   // Outputs: RecordStateChanged
+      if (d.authentication) {
+        if (!cfg.password) { authFailed = true; obs.state = "auth"; obs.error = "OBS asks for a password"; ws.close(); return; }
+        ident.authentication = sha(sha(cfg.password + d.authentication.salt) + d.authentication.challenge);
+      }
+      obs.version = d.obsWebSocketVersion ?? "";
+      ws.send(JSON.stringify({ op: 1, d: ident }));
+    } else if (m.op === 2) {     // Identified
+      identified = true;
+      const was = obs.state;
+      obs.state = "connected"; obs.error = "";
+      if (was !== "connected") obsNote(`connected (${cfg.url})`);
+      obsSync(cfg).catch(() => {});
+    } else if (m.op === 5 && d.eventType === "RecordStateChanged") {
+      const e = d.eventData ?? {};
+      obs.recording = !!e.outputActive;
+      if (e.outputPath) obs.lastPath = e.outputPath;
+      for (const w of obs.waiters.filter((x) => x.state === e.outputState)) { w.done(e); }
+      obs.waiters = obs.waiters.filter((x) => x.state !== e.outputState);
+    } else if (m.op === 7) {     // RequestResponse
+      const p = obs.pending.get(d.requestId);
+      if (!p) return;
+      obs.pending.delete(d.requestId); clearTimeout(p.timer);
+      p.done({ ok: !!d.requestStatus?.result, code: d.requestStatus?.code, comment: d.requestStatus?.comment ?? "", data: d.responseData ?? {} });
+    }
+  });
+  ws.on("close", (code) => {
+    if (obs.ws === ws) obs.ws = null;
+    for (const p of obs.pending.values()) { clearTimeout(p.timer); p.done({ ok: false, code: -1, comment: "OBS disconnected", data: {} }); }
+    obs.pending.clear();
+    if (authFailed || code === 4009) { obs.state = "auth"; obs.error = code === 4009 ? "wrong OBS password" : obs.error; }
+    else { if (obs.state === "connected") obsNote("disconnected"); obs.state = "not-found"; }
+    obs.recording = false;
+    obs.timer = setTimeout(obsConnect, obs.state === "auth" ? OBS_RETRY_MS * 2 : OBS_RETRY_MS);
+  });
+}
+
+function obsRequest(requestType, requestData, ms = 6000) {
+  return new Promise((done) => {
+    const ws = obs.ws;
+    if (!ws || ws.readyState !== 1 || obs.state !== "connected") { done({ ok: false, code: -1, comment: "OBS is not connected", data: {} }); return; }
+    const requestId = "r" + ++obs.seq;
+    const timer = setTimeout(() => { obs.pending.delete(requestId); done({ ok: false, code: -2, comment: `no answer to ${requestType}`, data: {} }); }, ms);
+    obs.pending.set(requestId, { done, timer });
+    ws.send(JSON.stringify({ op: 6, d: { requestType, requestId, ...(requestData ? { requestData } : {}) } }));
+  });
+}
+function obsWait(state, ms) {
+  return new Promise((done) => {
+    const w = { state, done: (e) => { clearTimeout(w.timer); done(e); } };
+    w.timer = setTimeout(() => { obs.waiters = obs.waiters.filter((x) => x !== w); done(null); }, ms);
+    obs.waiters.push(w);
+  });
+}
+
+/** On connect: the current recording state, and the deck link (with this run's key) in the Browser source. */
+async function obsSync(cfg) {
+  const st = await obsRequest("GetRecordStatus");
+  if (st.ok) obs.recording = !!st.data.outputActive;
+  if (!cfg.deckUrl) { obs.source = null; return; }
+  const cur = await obsRequest("GetInputSettings", { inputName: cfg.source });
+  if (!cur.ok) { obs.source = "missing"; obsNote(`no source "${cfg.source}": import remote/obs-scene-collection.json once`); return; }
+  if (cur.data.inputSettings?.url !== cfg.deckUrl) {
+    const set = await obsRequest("SetInputSettings", { inputName: cfg.source, inputSettings: { url: cfg.deckUrl }, overlay: true });
+    obs.source = set.ok ? "updated" : "missing";
+    if (set.ok) obsNote(`deck link of "${cfg.source}" updated to this run's key`);
+  } else obs.source = "ok";
+}
+
+const obsStatus = () => ({ state: obs.state, recording: obs.recording, error: obs.error, source: obs.source, version: obs.version, url: obsConfig()?.url ?? null });
+
 /* ------------------------------------------------------------------ recording */
 
 // One take = one MediaRecorder run on one phone. A phone that reloads or comes back from the
 // background starts a new take, saved next to the first one (name-2.webm, …).
-let rec = null; // { session, dir, startedAt, beepAt, stoppedAt, takes: Map, events: [] }
+let rec = null; // { session, dir, startedAt, beepAt, stoppedAt, takes: Map, events: [], obs, mix }
 const slug = (s) => String(s).normalize("NFKD").replace(/[^\w-]+/g, "-").replace(/^-+|-+$/g, "").toLowerCase() || "speaker";
 const recActive = () => !!(rec && !rec.stoppedAt);
 
@@ -353,8 +485,13 @@ function saveTimeline(now = false) {
       clock: "server milliseconds since the Unix epoch; t = milliseconds since startedAt",
       startedAt: rec.startedAt, countdownMs: COUNTDOWN_MS, beepAt: rec.beepAt, stoppedAt: rec.stoppedAt,
       speakers: SPEAKERS,
+      // the OBS file of this take, when OBS was driven over obs-websocket (npm run mix finds it here)
+      obs: rec.obs ?? null,
       tracks: [...rec.takes.values()].map(({ fd, ...t }) => t),
       events: rec.events,
+      // the phone cameras reach the OBS deck this much later than the voices are heard: npm run mix delays
+      // the voices by it, so lips and words match (null: no camera in this take)
+      cameraLagMs: camLagMs(),
     };
     const file = join(rec.dir, "timeline.json");
     try { writeFileSync(file + ".tmp", JSON.stringify(out, null, 2)); renameSync(file + ".tmp", file); }
@@ -364,19 +501,57 @@ function saveTimeline(now = false) {
 }
 
 let countdownTimer = null;
-function recStart() {
-  if (recActive()) return;
+let starting = false;   // waiting for OBS to start recording
+const OBS_START_MS = Number(process.env.OBS_START_MS ?? 10000);
+const OBS_TAIL_MS = Number(process.env.OBS_TAIL_MS ?? 1000);
+
+/** Start REC for everyone. With OBS connected: OBS starts recording first, then the countdown and the beep. */
+async function recStart() {
+  if (recActive() || starting) return;
+  let viaObs = false;
+  if (obs.state === "connected") {
+    starting = true;
+    toAll(consoles, statusMsg());
+    try {
+      const st = await obsRequest("GetRecordStatus");
+      if (!(st.ok && st.data.outputActive)) {
+        const started = obsWait("OBS_WEBSOCKET_OUTPUT_STARTED", OBS_START_MS);
+        const r = await obsRequest("StartRecord");
+        if (!r.ok) throw new Error(r.comment || `error ${r.code}`);
+        if (!(await started)) throw new Error(`no recording after ${Math.round(OBS_START_MS / 1000)} s`);
+        obsNote("recording started");
+      } else obsNote("was already recording: using that recording");
+      viaObs = true;
+    } catch (e) {
+      starting = false;
+      const text = `OBS did not start recording (${e.message}). Start OBS by hand, then press Start again.`;
+      obsNote(text);
+      toAll(consoles, { type: "rec-error", text }); toAll(overlays, { type: "rec-error", text });
+      toAll(consoles, statusMsg());
+      return;
+    }
+    starting = false;
+    if (recActive()) return;
+  }
+  beginTake(viaObs);
+  toAll(consoles, statusMsg());
+}
+
+function beginTake(viaObs) {
   // a new folder per take, even when the lead restarts within the same second
   let session = stamp(), n = 1;
   while (existsSync(join(REC_DIR, session))) session = `${stamp()}-${++n}`;
   const dir = join(REC_DIR, session);
   mkdirSync(dir, { recursive: true });
-  rec = { session, dir, startedAt: Date.now(), beepAt: null, stoppedAt: null, takes: new Map(), events: [] };
-  recEvent({ type: "start" });
+  rec = { session, dir, startedAt: Date.now(), beepAt: null, stoppedAt: null, takes: new Map(), events: [],
+    obs: viaObs ? { driven: true, outputPath: null } : null, mix: null };
+  recEvent({ type: "start", obs: viaObs });
   if (lastState?.state) recEvent(sceneEvent(lastState.state));
   const msg = { type: "rec", state: "countdown", session, at: rec.startedAt, countdownMs: COUNTDOWN_MS };
   toAll(remotes, msg); toAll(consoles, msg); toAll(overlays, msg);
-  console.log(`REC ${session}: countdown`);
+  // the countdown runs on the cover: every deck (lead, OBS, viewers) jumps there now
+  if (START_FROM_COVER) toAll(decks, { type: "cmd", cmd: "jump", index: 0 });
+  console.log(`REC ${session}: countdown${viaObs ? " (OBS recording)" : ""}`);
   countdownTimer = setTimeout(() => {
     if (!recActive()) return;
     // the clap: OBS and lead decks beep and flash now; mix.py finds it in the OBS audio
@@ -384,6 +559,8 @@ function recStart() {
     recEvent({ type: "beep" });
     const go = { type: "rec", state: "recording", session, at: rec.startedAt, beepAt: rec.beepAt };
     toAll(overlays, { ...go, beep: true }); toAll(remotes, go); toAll(consoles, go);
+    // after the beep and its flash, every deck plays the intro, so the take opens with it
+    if (START_FROM_COVER) setTimeout(() => { if (recActive()) toAll(decks, { type: "cmd", cmd: "replay" }); }, INTRO_AFTER_BEEP_MS);
   }, COUNTDOWN_MS);
 }
 
@@ -393,10 +570,80 @@ function recStop() {
   rec.stoppedAt = Date.now();
   recEvent({ type: "stop" });
   saveTimeline(true);
+  const r = rec;
+  r.mix = { state: "waiting", note: r.obs?.driven ? "stopping OBS" : "saving the last uploads" };
   const msg = { type: "rec", state: "stopped", session: rec.session, at: rec.startedAt, stoppedAt: rec.stoppedAt };
   toAll(remotes, msg); toAll(consoles, msg); toAll(overlays, msg);
+  toAll(consoles, statusMsg());
   console.log(`REC ${rec.session}: stopped, files in ${rec.dir}`);
   // late chunks (the last one comes after stop) are still accepted until the next session
+  const obsDone = !r.obs?.driven ? Promise.resolve() : new Promise((done) => {
+    // a short tail, so the last word is in the video too; then OBS stops and tells where the file is
+    setTimeout(async () => {
+      let path = null;
+      if (obs.state === "connected") {
+        const stopped = obsWait("OBS_WEBSOCKET_OUTPUT_STOPPED", 8000);
+        const res = await obsRequest("StopRecord", null, 8000);
+        path = res.data?.outputPath || (await stopped)?.outputPath || obs.lastPath;
+        obsNote(res.ok ? `recording stopped: ${path ?? "file unknown"}` : `StopRecord failed (${res.comment}): stop OBS by hand`);
+      } else obsNote("not connected at Stop: stop OBS by hand");
+      r.obs.outputPath = path ?? null;
+      r.obs.stoppedAt = Date.now();
+      if (rec === r) saveTimeline(true);
+      done();
+    }, OBS_TAIL_MS);
+  });
+  // the helper mixes once OBS has stopped and the phones' last chunks are in
+  Promise.all([obsDone, uploadsSettled(r)]).then(() => { if (r.mix?.state === "waiting") { r.mix = { state: "pending" }; if (rec === r) toAll(consoles, statusMsg()); } });
+}
+
+const SETTLE_MS = Number(process.env.UPLOAD_SETTLE_MS ?? 2500);
+/** After Stop: every take has sent a chunk since Stop (its last one), or 10 s have passed. */
+function uploadsSettled(r) {
+  return new Promise((done) => {
+    const check = () => {
+      const age = Date.now() - r.stoppedAt;
+      // the newest take of each speaker (an older one ended at a gap and gets nothing more)
+      const newest = new Map();
+      for (const t of r.takes.values()) if (!newest.has(t.part) || (t.firstChunkAt ?? 0) > (newest.get(t.part).firstChunkAt ?? 0)) newest.set(t.part, t);
+      const allIn = [...newest.values()].every((t) => (t.lastChunkAt ?? 0) >= r.stoppedAt - 300);
+      if ((age >= SETTLE_MS && allIn) || age >= SETTLE_MS * 4) { done(); return; }
+      setTimeout(check, 250);
+    };
+    check();
+  });
+}
+
+/** POST /api/rec: npm run stop ends a running take cleanly. */
+async function apiRec(res, action) {
+  if (action === "start") recStart(); else if (action === "stop") recStop();
+  sendJson(res, 200, { ok: true, rec: recMsg() });
+}
+
+/* ------------------------------------------------------------------ host helper (auto-mix) */
+
+// remote/start.py runs a small helper on the laptop (in Docker mode too): it polls /api/helper,
+// mixes a stopped take with ffmpeg and posts its progress, which the control page shows.
+let helperSeenAt = 0;
+const helperJobs = [];
+const helperOnline = () => Date.now() - helperSeenAt < 5000;
+function helperGet(res) {
+  helperSeenAt = Date.now();
+  const jobs = helperJobs.splice(0);
+  sendJson(res, 200, { session: rec?.session ?? null, state: recMsg().state, mix: rec?.mix ?? null, jobs });
+}
+async function helperPost(req, res) {
+  let body;
+  try { body = JSON.parse(String(await readBody(req, 64 * 1024))); } catch { sendJson(res, 400, { error: "json" }); return; }
+  helperSeenAt = Date.now();
+  if (rec && body.session === rec.session && body.mix && typeof body.mix === "object") {
+    const m = body.mix;
+    const clean = { state: ["mixing", "done", "error", "waiting"].includes(m.state) ? m.state : "error" };
+    for (const k of ["note", "path", "voices", "folder", "error", "video"]) if (m[k] != null) clean[k] = String(m[k]).slice(0, 600);
+    rec.mix = clean;
+    toAll(consoles, statusMsg());
+  }
+  sendJson(res, 200, { ok: true });
 }
 
 const recMsg = () => !rec ? { type: "rec", state: "idle" }
@@ -462,6 +709,41 @@ function toAll(set, msg, except) { const s = JSON.stringify(msg); for (const ws 
 const scenesMsg = () => ({ type: "scenes", scenes: SCENES, speakers: SPEAKERS });
 const maxPart = () => Math.max(SPEAKERS.length, ...SPEAKERS.map((s) => s.part), ...SCENES.map((s) => s.part), 1);
 
+/** Camera frames: when each part sent its last one, and how late they arrive during a take. */
+const camAt = new Map();           // part -> last frame time
+const thumbAt = new Map();         // part -> last thumbnail sent to the phones
+const CAM_LIVE_MS = 2000;
+function camLagMs() {
+  const l = rec?.camLag;
+  if (!l || l.length < 10) return null;
+  const sorted = [...l].sort((a, b) => a - b);
+  return Math.round(sorted[Math.floor(sorted.length / 2)]);
+}
+
+/** Who is on the call, for the chips on every phone: online, mic on, muted, talking right now. */
+const talkAt = new Map();          // part -> last time its level said "talking"
+const TALK_MS = 700;
+function teamMsg() {
+  const now = Date.now();
+  const phones = [...remotes].map((ws) => ws.info).filter((i) => i && i.part >= 1);
+  return {
+    type: "team",
+    list: SPEAKERS.map((s) => {
+      const i = phones.filter((x) => x.part === s.part).sort((a, b) => (b.seenAt ?? 0) - (a.seenAt ?? 0))[0];
+      return { part: s.part, name: s.name, online: !!i, micOn: !!i?.micOn, muted: !!i?.muted,
+        cam: !!i && now - (camAt.get(s.part) ?? 0) < CAM_LIVE_MS,
+        talking: !!i && !i.muted && now - (talkAt.get(s.part) ?? 0) < TALK_MS };
+    }),
+  };
+}
+let lastTeam = "";
+function pushTeam(force) {
+  const msg = teamMsg(), key = JSON.stringify(msg);
+  if (!force && key === lastTeam) return;
+  lastTeam = key;
+  for (const r of remotes) send(r, key);
+}
+
 /** What the pre-flight page shows, once a second. */
 function statusMsg() {
   const now = Date.now();
@@ -482,11 +764,14 @@ function statusMsg() {
   const overlayKinds = [...overlays].map((o) => o.kind);
   return {
     type: "status", now,
-    lead: { keySet: LEAD !== "", decks: leads.size },
+    lead: { keySet: LEAD !== "", decks: leads.size, at: lastState ? (SCENES[lastState.state.index]?.id ?? null) : null, hidden: [...overlays].some((o) => o.kind === "lead") && [...overlays].filter((o) => o.kind === "lead").every((o) => o.hidden) },
+    consoles: consoles.size,
     decks: { total: decks.size, followers: decks.size - leads.size, obs: overlayKinds.filter((k) => k === "obs").length },
     scenes: { count: SCENES.length, source: SCENE_SOURCE, orphans: SCENES.filter((s) => s.part === 0 && !s.appendix).map((s) => s.id) },
     state: lastState?.state ?? null,
     speakers, rec: recMsg(), media: mediaFiles(),
+    obs: obsStatus(), starting, mix: rec?.mix ?? null, helper: { online: helperOnline() },
+    recDir: rec?.dir ?? null,
   };
 }
 
@@ -513,6 +798,12 @@ server.on("upgrade", (req, socket, head) => {
       send(ws, { type: "role", lead: isLead });
       // a deck that joins late goes straight to the slide of the lead
       if (!isLead && leads.size && lastState) send(ws, { type: "sync", state: lastState.state });
+      // a lead deck that was closed and opened again goes back to where the talk is, instead of pulling
+      // every deck to its own first slide: its own states count again once it is there (or after 30 s)
+      if (isLead && leads.size === 1 && lastState) {
+        ws.resume = { index: lastState.state.index, step: lastState.state.step, until: Date.now() + 30000 };
+        send(ws, { type: "sync", state: lastState.state, resume: true });
+      }
       toAll(remotes, { type: "deck", online: true });
     } else if (role === "remote") {
       ws.info = { part: 0, seenAt: Date.now() };
@@ -520,6 +811,7 @@ server.on("upgrade", (req, socket, head) => {
       send(ws, scenesMsg());
       send(ws, recMsg());
       if (lastState) send(ws, lastState);
+      send(ws, JSON.stringify(teamMsg()));
     } else if (role === "overlay") {
       ws.kind = q.get("kind") === "lead" && leadOk ? "lead" : "obs";
       send(ws, recMsg());
@@ -539,6 +831,11 @@ server.on("upgrade", (req, socket, head) => {
       if (role === "deck" && m.type === "state" && m.state && typeof m.state === "object") {
         // with a lead deck open, only its state counts; the other decks follow it
         if (leads.size && !leads.has(ws)) return;
+        if (ws.resume) {
+          if (m.state.index === ws.resume.index && m.state.step === ws.resume.step) delete ws.resume;
+          else if (Date.now() < ws.resume.until) return;
+          else delete ws.resume;
+        }
         const prev = lastState?.state;
         lastState = { type: "state", state: m.state };
         toAll(remotes, lastState);
@@ -560,10 +857,16 @@ server.on("upgrade", (req, socket, head) => {
         if (changed) { toAll(remotes, scenesMsg()); console.log(`Scenes from the deck: ${SCENES.length}`); }
       } else if (role === "deck" && m.type === "cmd" && leads.has(ws) && LEAD_CMDS.includes(m.cmd)) {
         toAll(decks, { type: "cmd", cmd: m.cmd, index: m.index, t: m.t }, ws);
-      } else if ((role === "console" || (role === "deck" && leads.has(ws))) && m.type === "rec") {
-        // only the lead starts and stops the recording for everyone
+      } else if ((role === "console" || (role === "deck" && leads.has(ws)) || (role === "overlay" && ws.kind === "lead")) && m.type === "rec") {
+        // only the lead starts and stops the recording for everyone (console, lead deck, or Ctrl+R in the lead deck)
         if (m.action === "start") recStart();
         else if (m.action === "stop") recStop();
+        else if (m.action === "toggle") { if (recActive()) recStop(); else recStart(); }
+      } else if (role === "overlay" && ws.kind === "lead" && m.type === "vis") {
+        ws.hidden = !!m.hidden;   // the lead deck's tab is in the background (the control page shows it)
+      } else if (role === "console" && m.type === "open" && rec) {
+        // "Open folder" on the control page: the helper on the laptop opens it
+        helperJobs.push({ open: rec.session, what: m.what === "file" ? "file" : "folder" });
       } else if (role === "remote" && m.type === "level") {
         // the voice level from a speaker's phone microphone, so the deck can show who really speaks
         const part = Number(m.part), v = Number(m.v);
@@ -571,6 +874,29 @@ server.on("upgrade", (req, socket, head) => {
         const out = JSON.stringify({ type: "level", part, v: Math.round(v * 100) / 100 });
         for (const d of decks) send(d, out);
         for (const c of consoles) send(c, out);
+        if (v >= 0.12) { const was = Date.now() - (talkAt.get(part) ?? 0) < TALK_MS; talkAt.set(part, Date.now()); if (!was) pushTeam(); }
+      } else if (role === "remote" && m.type === "frame") {
+        // a camera frame (small JPEG as a data URL): to every deck; about one a second to the other phones
+        const part = Number(m.part), now = Date.now();
+        if (!(Number.isInteger(part) && part >= 1 && part <= maxPart())) return;
+        if (typeof m.data !== "string" || !m.data.startsWith("data:image/jpeg;base64,") || m.data.length > 160000) return;
+        if (now - (ws.lastFrame ?? 0) < 30) return;
+        ws.lastFrame = now;
+        const was = now - (camAt.get(part) ?? 0) < CAM_LIVE_MS;
+        camAt.set(part, now);
+        const out = JSON.stringify({ type: "frame", part, data: m.data });
+        for (const d of decks) if (d.bufferedAmount < 512 * 1024) send(d, out);
+        if (now - (thumbAt.get(part) ?? 0) > 1000) {
+          thumbAt.set(part, now);
+          const th = JSON.stringify({ type: "thumb", part, data: m.data });
+          for (const r of remotes) if (r !== ws && r.bufferedAmount < 256 * 1024) send(r, th);
+        }
+        const off = ws.info?.offset, t = Number(m.t);
+        if (rec && !rec.stoppedAt && Number.isFinite(off) && Number.isFinite(t)) {
+          const lag = now - (t + off);
+          if (lag > -500 && lag < 5000) { (rec.camLag ||= []).push(lag); if (rec.camLag.length > 3000) rec.camLag.splice(0, 1000); }
+        }
+        if (!was) pushTeam();
       } else if (role === "remote" && m.type === "status") {
         // optional phone health for the pre-flight page
         const n = (x) => (Number.isFinite(Number(x)) ? Number(x) : null);
@@ -579,9 +905,10 @@ server.on("upgrade", (req, socket, head) => {
           part: Number.isInteger(part) && part >= 0 ? part : 0, seenAt: Date.now(),
           battery: n(m.battery), charging: typeof m.charging === "boolean" ? m.charging : null,
           mic: ["granted", "denied", "prompt", "unknown"].includes(m.mic) ? m.mic : "unknown",
-          micOn: !!m.micOn, headphones: !!m.headphones, recording: !!m.recording, hidden: !!m.hidden,
+          micOn: !!m.micOn, muted: !!m.muted, headphones: !!m.headphones, recording: !!m.recording, hidden: !!m.hidden,
           queue: n(m.queue) ?? 0, rtt: n(m.rtt), offset: n(m.offset), mime: typeof m.mime === "string" ? m.mime.slice(0, 60) : null,
         };
+        pushTeam();
       } else if (role === "remote" && m.type === "rec-gap") {
         // the phone was in the background or locked: its recording may have a hole here
         if (!recActive()) return;
@@ -635,11 +962,14 @@ const heartbeat = setInterval(() => {
 heartbeat.unref();
 const statusTimer = setInterval(() => { if (consoles.size) toAll(consoles, statusMsg()); }, 1000);
 statusTimer.unref();
+// chips stop glowing when a voice stops, and drop a phone that left
+const teamTimer = setInterval(() => { if (remotes.size) pushTeam(); }, 250);
+teamTimer.unref();
 
 /* ------------------------------------------------------------------ start */
 
 server.on("error", (e) => {
-  console.error(e.code === "EADDRINUSE" ? `Port ${PORT} is busy: another remote is running? (python remote/start.py --stop)` : String(e));
+  console.error(e.code === "EADDRINUSE" ? `Port ${PORT} is busy: another remote is running? (npm run stop)` : String(e));
   process.exit(1);
 });
 for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => { if (recActive()) recStop(); server.close(); process.exit(0); });
@@ -651,4 +981,5 @@ server.listen(PORT, HOST, () => {
   if (orphans.length) console.log(`Warning: no speaker part for ${orphans.join(", ")}: no phone can move these scenes (the lead deck still can).`);
   if (!SCENES.length) console.log("No scene notes yet: phones work as plain clickers until a deck sends its scenes (see NOTES.md).");
   console.log(`Remote listening on http://${HOST}:${PORT}  key ${KEY}${LEAD ? "  (lead key set)" : ""}`);
+  if (obsConfig()) obsConnect();
 });

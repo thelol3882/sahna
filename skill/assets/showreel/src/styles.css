@@ -84,3 +84,9 @@ html.lasering, html.lasering * { cursor: none !important; }
 
 /* export screenshots must never catch chrome mid-transition */
 .export-mode *, .export-mode *::before, .export-mode *::after { transition: none !important; }
+
+/* speaker chip: the phone camera turns the round avatar into a face (remote module, recording.camera) */
+.spk-face { width: 44px; height: 44px; transition: width 380ms cubic-bezier(.2,.8,.2,1), height 380ms cubic-bezier(.2,.8,.2,1), box-shadow 120ms; }
+.spk-face img { opacity: 0; transition: opacity 250ms; }
+.spk-face.cam { width: 112px; height: 112px; }
+.spk-face.cam img { opacity: 1; }

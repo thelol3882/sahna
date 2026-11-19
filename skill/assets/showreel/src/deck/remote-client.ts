@@ -13,6 +13,7 @@ import type { Msg } from "./types";
  *                  {type:"sync", state}              follower: the lead's state (also for late joiners)
  *                  {type:"cmd", cmd, index?, t?}     from the lead deck or a phone
  *                  {type:"level", part, v}           voice level 0..1 of a speaker's phone mic
+ *                  {type:"frame", part, data}        a phone camera frame (small JPEG data URL), ~15 a second
  */
 const params = () => new URLSearchParams(typeof location === "undefined" ? "" : location.search);
 
@@ -23,6 +24,8 @@ export const SHOW_NAMES = REMOTE || params().has("names");
 
 /** Voice levels from the speakers' phones: part → level 0..1 and when it came. */
 export const voice: Record<number, { v: number; at: number }> = {};
+/** Camera frames from the speakers' phones: part → the latest JPEG (data URL) and when it came. */
+export const camera: Record<number, { src: string; at: number }> = {};
 
 export type RemoteLink = { send: (m: Msg) => void; close: () => void };
 
@@ -45,6 +48,8 @@ export function connectRemote(onMsg: (m: Msg) => void): RemoteLink | null {
     s.onmessage = (e) => {
       let m: Msg;
       try { m = JSON.parse(String(e.data)) as Msg; } catch { return; }
+      // frames come many times a second: kept here for the speaker chip, not passed through the deck
+      if (m.type === "frame") { camera[m.part] = { src: m.data, at: Date.now() }; return; }
       if (m.type === "level") voice[m.part] = { v: m.v, at: Date.now() };
       onMsg(m);
     };

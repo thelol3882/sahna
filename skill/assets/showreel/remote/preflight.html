@@ -3,87 +3,104 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pre-flight</title>
+<title>Control</title>
 <style>
-/* The lead's console: is everyone ready, then REC for everyone, then watch the uploads during the take. */
+/* The lead's control page: one status, one button. Who is ready, then REC for everyone, then the mix.
+   A separate page on purpose: OBS and the viewers never see it. */
 :root {
-  --bg: #0F1420; --surface: #182031; --ink: #EDF0F6; --muted: #9AA3B8; --line: #273046;
-  --good: #3DBE7A; --warn: #F2B544; --bad: #FF6B5E; --rec: #E53935; --accent: #5C82FF;
-  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; --mono: ui-monospace, Menlo, Consolas, monospace;
+  --bg: #0E121B; --surface: #161C29; --raise: #1E2636; --ink: #EEF1F7; --muted: #8E97AB; --faint: #5A6479; --line: #252D3F;
+  --good: #4CC38A; --warn: #F2B544; --bad: #FF6B5E; --rec: #FF4D4D; --accent: #7C9BFF;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.4 var(--font); }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.45 var(--font); }
 [hidden] { display: none !important; }
-main { max-width: 1100px; margin: 0 auto; padding: 24px; display: grid; gap: 18px; }
-header { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
-h1 { margin: 0; font-size: 22px; }
-.ready { margin-left: auto; padding: 14px 26px; border-radius: 16px; font-size: 26px; font-weight: 800; background: var(--surface); color: var(--muted); border: 2px solid var(--line); }
-.ready.go { background: var(--good); color: #062; border-color: var(--good); color: #04220F; }
-.ready.rec { background: var(--rec); color: #fff; border-color: var(--rec); }
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; }
-.card h2 { margin: 0 0 10px; font-size: 15px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
-.checks { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px 18px; }
+button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; }
+button:disabled { cursor: default; opacity: .45; }
+button:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+main { max-width: 920px; margin: 0 auto; padding: 28px 28px 60px; display: flex; flex-direction: column; gap: 18px; }
+header { display: flex; align-items: baseline; gap: 14px; color: var(--muted); font-size: 15px; }
+header h1 { margin: 0; font-size: 16px; font-weight: 650; color: var(--muted); }
+header .conn { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+header .conn i { width: 9px; height: 9px; border-radius: 50%; background: var(--good); }
+header .conn.off i { background: var(--bad); }
+
+.hero { background: var(--surface); border-radius: 26px; padding: 34px 36px 30px; display: grid; grid-template-columns: 1fr auto; gap: 8px 28px; align-items: center; }
+.big { font-size: 64px; line-height: 1; font-weight: 850; letter-spacing: -.02em; font-variant-numeric: tabular-nums; color: var(--muted); }
+.big.go { color: var(--good); } .big.rec { color: var(--rec); } .big.mix { color: var(--accent); } .big.bad { color: var(--bad); }
+.sub { grid-column: 1; font-size: 19px; color: var(--muted); min-height: 1.45em; }
+.sub.err { color: var(--bad); font-weight: 600; }
+.primary { grid-row: 1 / span 2; grid-column: 2; min-width: 260px; min-height: 88px; padding: 0 34px; border-radius: 22px;
+  font-size: 24px; font-weight: 800; background: var(--raise); color: var(--ink); transition: background .15s, transform .08s; }
+.primary.start { background: var(--rec); color: #fff; }
+.primary.start.soft { background: var(--raise); color: var(--ink); box-shadow: inset 0 0 0 2px var(--rec); }
+.primary.stop { background: var(--ink); color: var(--bg); }
+.primary.armed { background: var(--warn); color: #241800; }
+.primary:active:not(:disabled) { transform: scale(.98); }
+.under { grid-column: 1 / -1; font-size: 15px; color: var(--faint); }
+.done { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 10px; padding-top: 18px; border-top: 1px solid var(--line); }
+.done code { font: 15px var(--mono); color: var(--ink); background: var(--bg); padding: 8px 12px; border-radius: 10px; overflow-wrap: anywhere; flex: 1 1 320px; }
+.leadwarn { grid-column: 1 / -1; display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-radius: 14px; background: #3a1d22; color: #ffc9cf; font-size: 17px; }
+.leadwarn button { min-height: 46px; padding: 0 18px; border-radius: 12px; background: #ff5a6a; color: #fff; font-weight: 800; font-size: 16px; flex: none; }
+.done button { min-height: 46px; padding: 0 18px; border-radius: 12px; background: var(--raise); font-weight: 700; font-size: 16px; }
+
+.obs { display: flex; align-items: center; gap: 12px; padding: 0 6px; font-size: 16px; color: var(--muted); }
+.obs i { width: 10px; height: 10px; border-radius: 50%; background: var(--faint); flex: none; }
+.obs.good i { background: var(--good); } .obs.rec i { background: var(--rec); animation: blink 1.2s infinite; } .obs.warn i { background: var(--warn); }
+.obs b { color: var(--ink); font-weight: 650; }
+@keyframes blink { 50% { opacity: .3; } }
+
+.people { background: var(--surface); border-radius: 22px; padding: 8px 8px; }
+.person { width: 100%; display: grid; grid-template-columns: 14px minmax(120px, 1fr) minmax(150px, 1.3fr) 200px; gap: 16px; align-items: center;
+  padding: 14px 18px; border-radius: 16px; text-align: left; }
+.person:hover { background: var(--raise); }
+.person .d { width: 14px; height: 14px; border-radius: 50%; background: var(--bad); }
+.person .d.good { background: var(--good); } .person .d.warn { background: var(--warn); }
+.person .n { font-size: 22px; font-weight: 750; }
+.person .s { font-size: 16px; color: var(--muted); }
+.person .s.bad { color: var(--bad); font-weight: 650; }
+.meter { height: 10px; border-radius: 6px; background: var(--line); overflow: hidden; }
+.meter i { display: block; height: 100%; width: 0; background: var(--good); transition: width .1s; }
+.more { margin: -4px 18px 10px 48px; font: 14px var(--mono); color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 20px; }
+
+details { background: var(--surface); border-radius: 18px; padding: 0 22px; }
+summary { list-style: none; cursor: pointer; padding: 16px 0; font-size: 16px; font-weight: 650; color: var(--muted); display: flex; gap: 10px; }
+summary::-webkit-details-marker { display: none; }
+summary::before { content: "›"; display: inline-block; transition: transform .15s; }
+details[open] summary::before { transform: rotate(90deg); }
+summary small { color: var(--faint); font-weight: 500; }
+.checks { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 8px 22px; padding: 0 0 18px; font-size: 15px; }
 .check { display: flex; gap: 10px; align-items: baseline; }
 .check b { width: 1.2em; text-align: center; }
 .ok b { color: var(--good); } .no b { color: var(--bad); } .opt b { color: var(--warn); }
 .check small { color: var(--muted); }
-table { width: 100%; border-collapse: collapse; font-size: 15px; }
-th { text-align: left; color: var(--muted); font-weight: 600; font-size: 13px; padding: 6px 8px; border-bottom: 1px solid var(--line); }
-td { padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
-td.n { font-weight: 700; }
-.pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 13px; font-weight: 700; background: var(--line); color: var(--muted); }
-.pill.good { background: rgba(61,190,122,.18); color: var(--good); }
-.pill.bad { background: rgba(255,107,94,.18); color: var(--bad); }
-.pill.warn { background: rgba(242,181,68,.18); color: var(--warn); }
-.meter { width: 120px; height: 10px; border-radius: 6px; background: var(--line); overflow: hidden; }
-.meter i { display: block; height: 100%; width: 0; background: var(--good); transition: width .1s; }
-.rec { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-.rec button { min-height: 56px; padding: 0 28px; border-radius: 14px; border: 0; font-size: 18px; font-weight: 800; cursor: pointer; }
-#recStart { background: var(--rec); color: #fff; }
-#recStop { background: var(--ink); color: var(--bg); }
-.rec button:disabled { opacity: .4; cursor: default; }
-.rec .info { font: 600 15px var(--mono); color: var(--muted); }
-.log { font: 13px var(--mono); color: var(--muted); max-height: 140px; overflow: auto; white-space: pre-wrap; }
-.conn { font-size: 13px; color: var(--muted); }
-.conn.off { color: var(--bad); }
+.log { font: 13px/1.6 var(--mono); color: var(--muted); max-height: 220px; overflow: auto; white-space: pre-wrap; padding: 0 0 18px; }
+@media (max-width: 720px) {
+  .hero { grid-template-columns: 1fr; padding: 26px; } .primary { grid-row: auto; grid-column: 1; width: 100%; } .big { font-size: 48px; }
+  .person { grid-template-columns: 14px 1fr 90px; } .person .s { grid-column: 2 / -1; grid-row: 2; }
+}
 </style>
 </head>
 <body>
 <main>
-  <header>
-    <h1 id="title">Pre-flight</h1>
-    <span class="conn off" id="conn">connecting…</span>
-    <div class="ready" id="ready">Not ready</div>
-  </header>
+  <header><h1 id="title">Control</h1><span class="conn off" id="conn"><i></i><span id="connText">connecting…</span></span></header>
 
-  <section class="card">
-    <h2>Recording</h2>
-    <div class="rec">
-      <button id="recStart">● Start REC for everyone</button>
-      <button id="recStop" disabled>■ Stop</button>
-      <span class="info" id="recInfo">idle</span>
-    </div>
-    <p class="conn" style="margin:10px 0 0">Start OBS recording first, then press Start: every phone counts 3-2-1, then the OBS deck beeps and flashes once (the sync clap). Files go to recordings/&lt;session&gt;/.</p>
+  <section class="hero">
+    <div class="big" id="big">…</div>
+    <button class="primary" id="primary" disabled>Start recording</button>
+    <div class="sub" id="sub"></div>
+    <div class="under" id="under"></div>
+    <div class="leadwarn" id="leadWarn" hidden><span id="leadWarnText">The lead deck is closed: phones and Start cannot move the slides.</span><button id="openLead">Open the lead deck</button></div>
+    <div class="done" id="done" hidden><code id="donePath"></code><button id="openFolder">Open folder</button><button id="copyPath">Copy path</button></div>
   </section>
 
-  <section class="card">
-    <h2>Checks</h2>
-    <div class="checks" id="checks"></div>
-  </section>
+  <div class="obs" id="obs"><i></i><span id="obsText">OBS: …</span></div>
 
-  <section class="card">
-    <h2>Speakers</h2>
-    <table>
-      <thead><tr><th>#</th><th>Speaker</th><th>Phone</th><th>Mic</th><th>Level</th><th>Headphones</th><th>Battery</th><th>Clock</th><th>Recording</th><th>Last upload</th></tr></thead>
-      <tbody id="rows"></tbody>
-    </table>
-  </section>
+  <section class="people" id="rows" aria-label="Speakers"></section>
 
-  <section class="card">
-    <h2>Events</h2>
-    <div class="log" id="log"></div>
-  </section>
+  <details id="checksBox"><summary>Details <small id="checksSum"></small></summary><div class="checks" id="checks"></div></details>
+  <details><summary>Events</summary><div class="log" id="log"></div></details>
 </main>
 
 <script>
@@ -91,10 +108,11 @@ const DATA = __DATA__;
 const q = new URLSearchParams(location.search);
 const key = q.get("k") || "", lead = q.get("lead") || "";
 const $ = (id) => document.getElementById(id);
-$("title").textContent = (DATA.title || "Deck") + " · pre-flight";
-document.title = $("title").textContent;
+$("title").textContent = (DATA.title || "Deck") + " · control";
+document.title = "Control · " + (DATA.title || "Deck");
 const levels = {};      // part -> { v, at }
-let status = null, sock = null;
+const openRows = new Set();
+let status = null, sock = null, armed = null, armTimer = null, lastError = null;
 const media = {};       // file -> { ok, size }
 
 // media files: a HEAD request each, through the same server the decks use
@@ -116,89 +134,227 @@ function log(text) {
   $("log").textContent = `${d.toTimeString().slice(0, 8)}  ${text}\n` + $("log").textContent;
 }
 
-const pill = (text, cls) => `<span class="pill ${cls}">${text}</span>`;
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-const fmtAge = (ms) => ms == null ? "—" : ms < 1000 ? "now" : `${Math.round(ms / 1000)} s ago`;
+const ago = (ms) => ms == null ? "nothing yet" : ms < 1500 ? "just now" : `${Math.round(ms / 1000)} s ago`;
 const kb = (b) => b > 1e6 ? (b / 1e6).toFixed(1) + " MB" : Math.round(b / 1e3) + " kB";
+const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+const speakerReady = (x) => x.connected && x.mic === "granted" && x.micOn && x.headphones;
 
-function render() {
-  const open = sock && sock.readyState === 1;
-  $("conn").textContent = open ? "connected" : "reconnecting…";
-  $("conn").className = "conn" + (open ? "" : " off");
-  if (!status) return;
-  const s = status, rec = s.rec || { state: "idle" };
-  const recOn = rec.state === "countdown" || rec.state === "recording";
+/** One speaker → dot colour and one short line. */
+function personState(x, recOn, rec, now) {
+  if (!x.connected) return ["", "offline: not on the remote page", true];
+  if (recOn) {
+    if (x.hidden) return ["", "LEFT THE PAGE", true];
+    // the phone reports its recorder a moment after the countdown starts
+    if (!x.recording) return rec.state === "countdown" || now - (rec.at || now) < 5000 ? ["warn", "starting…"] : ["", "not recording", true];
+    const age = x.lastChunkAgeMs;
+    const since = rec.at ? now - rec.at : 0;
+    // a chunk comes every ~5 s: older than 12 s means this phone stopped uploading
+    if (age == null) return since > 12000 ? ["", "nothing saved yet", true] : ["good", "recording"];
+    if (age > 12000) return ["", `last save ${ago(age)}`, true];
+    return [age > 7000 ? "warn" : "good", `saved ${ago(age)} · ${kb(x.bytes)}`];
+  }
+  if (x.phones > 1) return ["warn", `${x.phones} phones on this part: close one`];
+  if (x.mic === "denied") return ["", "microphone blocked on the phone", true];
+  if (x.headphones && !x.micOn) return ["", "microphone stopped: tap the red bar on the phone", true];
+  if (!speakerReady(x)) return ["warn", "connected: waiting for “I'm ready”"];
+  return ["good", x.takes ? `ready · ${x.takes} take${x.takes > 1 ? "s" : ""} saved` : "ready"];
+}
 
-  // required checks decide "Ready"; optional ones only warn
+function computeChecks(s) {
   const sp = s.speakers;
   const checks = [
-    { ok: s.lead.keySet && s.lead.decks > 0, req: true, text: "Lead deck open", note: s.lead.decks ? "" : "open your lead link" },
-    { ok: s.decks.obs > 0, req: true, text: "OBS deck connected", note: s.decks.obs ? `${s.decks.obs}` : "add the OBS link as a Browser source" },
-    { ok: s.scenes.count > 0 && !s.scenes.orphans.length, req: false, text: "Scenes and speakers", note: `${s.scenes.count} scenes (${s.scenes.source})${s.scenes.orphans.length ? ", no speaker: " + s.scenes.orphans.join(", ") : ""}` },
+    { ok: s.lead.keySet && s.lead.decks > 0, req: true, text: "Lead deck open", note: s.lead.decks ? "" : "open the lead link (npm run links)" },
+    { ok: s.decks.obs > 0, req: true, text: "OBS deck connected", note: s.decks.obs ? `${s.decks.obs}` : "OBS open with the Deck (browser) source" },
     { ok: sp.every((x) => x.connected), req: true, text: "Every speaker's phone connected", note: `${sp.filter((x) => x.connected).length}/${sp.length}` },
-    { ok: sp.every((x) => x.mic === "granted" && x.micOn), req: true, text: "Every microphone allowed and on", note: sp.filter((x) => !(x.mic === "granted" && x.micOn)).map((x) => x.name).join(", ") },
-    { ok: sp.every((x) => x.headphones), req: true, text: "Headphones on, call on the laptop", note: sp.filter((x) => !x.headphones).map((x) => x.name).join(", ") },
+    { ok: sp.every(speakerReady), req: true, text: "Every speaker tapped “I'm ready” (mic on, headphones)", note: sp.filter((x) => !speakerReady(x)).map((x) => x.name).join(", ") },
+    { ok: s.scenes.count > 0 && !s.scenes.orphans.length, req: false, text: "Scenes and speakers", note: `${s.scenes.count} scenes (${s.scenes.source})${s.scenes.orphans.length ? ", no speaker: " + s.scenes.orphans.join(", ") : ""}` },
     { ok: sp.every((x) => x.battery == null || x.battery >= 30 || x.charging), req: false, text: "Phone batteries ≥ 30% or charging", note: sp.filter((x) => x.battery != null && x.battery < 30 && !x.charging).map((x) => `${x.name} ${x.battery}%`).join(", ") },
-    { ok: s.decks.followers - s.decks.obs >= 0, req: false, text: "Viewer decks", note: `${Math.max(0, s.decks.followers - s.decks.obs)} following the lead` },
+    { ok: s.obs && s.obs.state === "connected", req: false, text: "OBS remote control (obs-websocket)", note: s.obs ? s.obs.state : "" },
+    { ok: true, req: false, text: "Viewer decks", note: `${Math.max(0, s.decks.followers - s.decks.obs)} following the lead` },
+    { ok: !!(s.helper && s.helper.online), req: false, text: "Auto-mix helper on this laptop", note: s.helper && s.helper.online ? "running" : "not running: mix with npm run mix" },
   ];
   const files = Object.keys(media);
   if (files.length) checks.push({ ok: files.every((f) => media[f].ok), req: true, text: "Media files reachable (with seeking)", note: files.map((f) => `${f}${media[f].ok ? " ✓" : media[f].ok === null ? " …" : " ✗"}`).join(", ") });
-  $("checks").innerHTML = checks.map((c) => `<div class="check ${c.ok ? "ok" : c.req ? "no" : "opt"}"><b>${c.ok ? "✓" : c.req ? "✗" : "!"}</b><span>${esc(c.text)} <small>${esc(c.note || "")}</small></span></div>`).join("");
-  const ready = checks.filter((c) => c.req).every((c) => c.ok);
-  $("ready").className = "ready" + (recOn ? " rec" : ready ? " go" : "");
-  $("ready").textContent = recOn ? (rec.state === "countdown" ? "REC in 3…" : "● REC") : ready ? "READY" : "Not ready";
-
-  const now = Date.now();
-  $("rows").innerHTML = sp.map((x) => {
-    const lv = levels[x.part] && now - levels[x.part].at < 1500 ? levels[x.part].v : 0;
-    const mic = x.mic === "granted" ? (x.micOn ? pill("on", "good") : pill("allowed, off", "warn")) : x.mic === "denied" ? pill("blocked", "bad") : pill(x.mic, "warn");
-    const age = x.lastChunkAgeMs;
-    // during a take a chunk comes every ~5 s: older than 12 s means this phone stopped uploading
-    const up = !recOn && age == null ? "—" : age == null ? pill("nothing yet", rec.state === "recording" ? "bad" : "warn")
-      : pill(`${fmtAge(age)} · ${kb(x.bytes)}${x.takes > 1 ? ` · ${x.takes} takes` : ""}`, recOn && age > 12000 ? "bad" : recOn && age > 7000 ? "warn" : "good");
-    const recCell = !recOn ? (x.takes ? pill(`${x.takes} take${x.takes > 1 ? "s" : ""}`, "good") : "—")
-      : x.hidden ? pill("LEFT THE PAGE", "bad") : x.recording ? pill(`REC${x.queue > 1 ? ` · ${x.queue} queued` : ""}`, "good") : pill("not recording", "bad");
-    return `<tr>
-      <td>${x.part}</td><td class="n">${esc(x.name)}</td>
-      <td>${x.connected ? pill(x.phones > 1 ? `${x.phones} phones` : "connected", x.phones > 1 ? "warn" : "good") : pill("offline", "bad")}</td>
-      <td>${mic}</td>
-      <td><div class="meter"><i style="width:${Math.round(lv * 100)}%"></i></div></td>
-      <td>${x.headphones ? pill("yes", "good") : pill("not confirmed", "bad")}</td>
-      <td>${x.battery == null ? "—" : pill(`${x.battery}%${x.charging ? " ⚡" : ""}`, x.battery < 30 && !x.charging ? "bad" : "good")}</td>
-      <td>${x.rttMs == null ? "—" : `rtt ${x.rttMs} ms`}</td>
-      <td>${recCell}</td><td>${up}</td></tr>`;
-  }).join("");
-
-  $("recStart").disabled = !open || recOn;
-  $("recStop").disabled = !open || !recOn;
-  const el = rec.at ? Math.max(0, Math.floor((now - (rec.beepAt || rec.at)) / 1000)) : 0;
-  $("recInfo").textContent = rec.state === "idle" ? "idle"
-    : rec.state === "stopped" ? `stopped · session ${rec.session}`
-    : `${rec.state} · session ${rec.session} · ${Math.floor(el / 60)}:${String(el % 60).padStart(2, "0")}`;
+  return checks;
 }
 
-$("recStart").onclick = () => {
-  if (!status) return;
-  const notReady = $("ready").textContent !== "READY";
-  if (notReady && !confirm("Not every check passed. Start the recording anyway?")) return;
-  sock.send(JSON.stringify({ type: "rec", action: "start" }));
-};
-$("recStop").onclick = () => { if (confirm("Stop the recording for everyone?")) sock.send(JSON.stringify({ type: "rec", action: "stop" })); };
+function obsLine(s) {
+  const o = s.obs || { state: "off" };
+  if (o.state === "connected" && o.recording) return ["rec", "<b>OBS is recording</b>"];
+  if (o.state === "connected") {
+    const src = o.source === "missing" ? " · no “Deck (browser)” source: import remote/obs-scene-collection.json once" : "";
+    return [o.source === "missing" ? "warn" : "good", `<b>OBS connected</b> · Start starts its recording, Stop stops it${src}`];
+  }
+  if (o.state === "auth") return ["warn", `<b>OBS asks for a password</b> (${esc(o.error)}): Tools → WebSocket Server Settings → Show Connect Info, paste it into remote/config.local.json → {"obs": {"password": "…"}}. Until then: start the OBS recording by hand before Start.`];
+  if (o.state === "off") return ["", "<b>OBS by hand</b> (automation off): start the OBS recording before Start, stop it after Stop."];
+  return ["warn", "<b>OBS not found</b>: start the OBS recording by hand before Start (or enable Tools → WebSocket Server Settings in OBS)."];
+}
 
+function render() {
+  const open = sock && sock.readyState === 1;
+  $("connText").textContent = open ? "connected" : "reconnecting…";
+  $("conn").className = "conn" + (open ? "" : " off");
+  if (!status) return;
+  const s = status, rec = s.rec || { state: "idle" }, now = Date.now();
+  const recOn = rec.state === "countdown" || rec.state === "recording";
+  const checks = computeChecks(s);
+  const ready = checks.filter((c) => c.req).every((c) => c.ok);
+  const waitingFor = s.speakers.filter((x) => !speakerReady(x));
+  const mx = s.mix || null;
+  const obsOn = s.obs && s.obs.state === "connected";
+
+  // the big status and the one button
+  let big = "", cls = "", sub = "", btn = "Start recording", bcls = "start", dis = !open;
+  if (s.starting) { big = "STARTING"; cls = "rec"; sub = "Waiting for OBS to start recording…"; btn = "Starting…"; bcls = "stop"; dis = true; }
+  else if (rec.state === "countdown") { big = "3 · 2 · 1"; cls = "rec"; sub = "Countdown on every phone. Quiet for the beep."; btn = "Stop"; bcls = "stop"; }
+  else if (rec.state === "recording") {
+    const el = Math.max(0, Math.floor((now - (rec.beepAt || rec.at)) / 1000));
+    big = "REC " + mmss(el); cls = "rec";
+    const bad = s.speakers.filter((x) => personState(x, true, rec, now)[2]);
+    sub = bad.length ? `Check: ${bad.map((x) => x.name).join(", ")}` : "Every phone is saving.";
+    btn = "Stop"; bcls = "stop";
+  } else if (rec.state === "stopped" && !mx) {
+    big = "SAVING…"; cls = "mix"; sub = "Waiting for the last uploads…"; btn = "New take"; bcls = "start soft";
+  } else if (mx && ["waiting", "pending", "mixing"].includes(mx.state)) {
+    big = "MIXING…"; cls = "mix";
+    sub = mx.state === "mixing" ? (mx.note ? cap(mx.note) + "…" : "ffmpeg is mixing the voices under the video…")
+      : s.helper && s.helper.online ? (mx.note ? cap(mx.note) + "…" : "Waiting for the last uploads…") : "Saved. Not mixed: no helper running, run npm run mix.";
+    if (!(s.helper && s.helper.online) && mx.state === "pending") { big = "SAVED"; cls = "go"; }
+    btn = "New take"; bcls = "start soft";
+  } else if (mx && mx.state === "done") {
+    big = "DONE"; cls = "go"; sub = mx.note ? cap(mx.note) : "final.mp4 is ready: voices under the OBS video."; btn = "New take"; bcls = "start soft";
+  } else if (mx && mx.state === "error") {
+    big = "MIX FAILED"; cls = "bad"; sub = mx.error || "see the helper log (remote/.run/helper.log)"; btn = "New take"; bcls = "start soft";
+  } else if (!(s.lead.decks > 0)) {
+    big = "LEAD DECK CLOSED"; cls = "bad"; sub = "Open it again: phones and Start drive the slides through it."; btn = "Open the lead deck"; bcls = "start";
+  } else if (ready) { big = "READY"; cls = "go"; sub = `All ${s.speakers.length} speakers ready.`; }
+  else {
+    big = waitingFor.length ? `WAITING FOR ${waitingFor.length}` : "NOT READY"; cls = "";
+    sub = waitingFor.length ? waitingFor.map((x) => x.name).join(", ") : checks.filter((c) => c.req && !c.ok).map((c) => c.text).join(" · ");
+    bcls = "start soft";
+  }
+  if (armed === "start" && !recOn) { btn = "Not ready: start anyway?"; bcls = "armed"; }
+  if (armed === "stop" && recOn) { btn = "Click again to stop"; bcls = "armed"; }
+  if (lastError && now - lastError.at < 15000 && !recOn) { sub = lastError.text; }
+  $("big").textContent = big; $("big").className = "big " + cls;
+  $("sub").textContent = sub; $("sub").className = "sub" + (lastError && now - lastError.at < 15000 && !recOn ? " err" : "");
+  $("primary").textContent = btn; $("primary").className = "primary " + bcls; $("primary").disabled = dis;
+  const hiddenNote = s.lead.hidden && s.lead.decks ? " The lead deck is in a background tab: for smooth slides, give the control page its own window next to it." : "";
+  $("under").textContent = (recOn ? (obsOn ? "Stop also stops OBS. The mix starts by itself." : "After Stop, stop the OBS recording too. The mix starts by itself.")
+    : obsOn ? "Start starts OBS, then 3-2-1 on the phones and the sync beep. Ctrl+R in the lead deck does the same."
+    : "Start the OBS recording first, then press Start: 3-2-1 on the phones, then the sync beep.") + hiddenNote;
+
+  // the lead deck closed during a take (or any time): a red bar with one button, never hidden in the details
+  $("leadWarn").hidden = s.lead.decks > 0 || big === "LEAD DECK CLOSED";
+  $("leadWarnText").textContent = recOn ? "The lead deck is closed: the slides stopped following. Open it, it lands on the current slide."
+    : "The lead deck is closed: phones and Start cannot move the slides.";
+
+  // the result of the mix
+  const showDone = mx && mx.state === "done" && !recOn;
+  $("done").hidden = !showDone;
+  if (showDone) { $("donePath").textContent = mx.path || ""; $("openFolder").disabled = !(s.helper && s.helper.online); }
+
+  // OBS
+  const [ocls, otext] = obsLine(s);
+  $("obs").className = "obs " + ocls; $("obsText").innerHTML = otext;
+
+  // speakers: one row each (built once, updated in place, so a click never lands on a replaced element)
+  const sig = s.speakers.map((x) => x.part + ":" + x.name).join("|");
+  if ($("rows").dataset.sig !== sig) {
+    $("rows").dataset.sig = sig;
+    $("rows").innerHTML = s.speakers.map((x) => `<button class="person" data-part="${x.part}" aria-expanded="false">
+      <span class="d"></span><span class="n">${esc(x.name)}</span><span class="s"></span><span class="meter"><i></i></span></button>
+      <div class="more" data-more="${x.part}" hidden></div>`).join("");
+  }
+  for (const x of s.speakers) {
+    const row = $("rows").querySelector(`.person[data-part="${x.part}"]`), more = $("rows").querySelector(`[data-more="${x.part}"]`);
+    const [dcls, text, bad] = personState(x, recOn, rec, now);
+    const lv = levels[x.part] && now - levels[x.part].at < 1500 ? levels[x.part].v : 0;
+    row.querySelector(".d").className = "d " + dcls;
+    const st = row.querySelector(".s"); st.textContent = text; st.className = "s" + (bad ? " bad" : "");
+    row.querySelector(".meter i").style.width = Math.round(lv * 100) + "%";
+    const isOpen = openRows.has(x.part);
+    row.setAttribute("aria-expanded", String(isOpen));
+    more.hidden = !isOpen;
+    if (isOpen) more.innerHTML = `
+      <span>phone: ${x.connected ? (x.phones > 1 ? x.phones + " phones" : "connected") : "offline"}</span>
+      <span>mic: ${esc(x.mic)}${x.micOn ? ", on" : ", off"}</span><span>ready tapped: ${x.headphones ? "yes" : "no"}</span>
+      <span>battery: ${x.battery == null ? "—" : x.battery + "%" + (x.charging ? " ⚡" : "")}</span>
+      <span>rtt: ${x.rttMs == null ? "—" : x.rttMs + " ms"}</span><span>clock: ${x.clockOffsetMs == null ? "—" : x.clockOffsetMs + " ms"}</span>
+      <span>recording: ${x.recording ? "yes" : "no"}${x.queue > 1 ? ` · ${x.queue} queued` : ""}</span>
+      <span>last upload: ${x.lastChunkAgeMs == null ? "—" : ago(x.lastChunkAgeMs)}</span><span>takes: ${x.takes} · ${kb(x.bytes)}</span>
+      <span>format: ${esc(x.mime || "—")}</span>`;
+  }
+
+  // details: the full checklist
+  $("checks").innerHTML = checks.map((c) => `<div class="check ${c.ok ? "ok" : c.req ? "no" : "opt"}"><b>${c.ok ? "✓" : c.req ? "✗" : "!"}</b><span>${esc(c.text)} <small>${esc(c.note || "")}</small></span></div>`).join("");
+  const failed = checks.filter((c) => c.req && !c.ok).length;
+  $("checksSum").textContent = failed ? `${failed} required check${failed > 1 ? "s" : ""} open` : "all required checks pass";
+}
+const cap = (t) => String(t).charAt(0).toUpperCase() + String(t).slice(1);
+
+$("rows").onclick = (e) => {
+  const b = e.target.closest(".person"); if (!b) return;
+  const p = Number(b.dataset.part);
+  if (openRows.has(p)) openRows.delete(p); else openRows.add(p);
+  render();
+};
+
+function arm(what) {
+  armed = what; clearTimeout(armTimer);
+  armTimer = setTimeout(() => { armed = null; render(); }, 3000);
+  render();
+}
+function sendRec(action) { if (sock && sock.readyState === 1) sock.send(JSON.stringify({ type: "rec", action })); armed = null; lastError = null; render(); }
+const leadUrl = () => `${location.origin}/?remote&k=${encodeURIComponent(key)}&lead=${encodeURIComponent(lead)}` + (status && status.lead && status.lead.at ? "#" + encodeURIComponent(status.lead.at) : "");
+// opens on the scene the talk is on (no intro); the server then sends the exact step
+// a named window, so a second click focuses the same lead deck instead of opening another one
+const openLead = () => { const w = window.open(leadUrl(), "sahna-lead-deck"); if (w) w.focus(); };
+$("openLead").onclick = openLead;
+$("primary").onclick = () => {
+  if (!status) return;
+  const rec = status.rec || {};
+  const recOn = rec.state === "countdown" || rec.state === "recording";
+  if (!recOn && !(status.lead.decks > 0) && !["waiting", "pending", "mixing"].includes((status.mix || {}).state)) { openLead(); return; }
+  if (recOn) { if (armed === "stop") sendRec("stop"); else arm("stop"); return; }
+  const ready = computeChecks(status).filter((c) => c.req).every((c) => c.ok);
+  if (ready || armed === "start") sendRec("start"); else arm("start");
+};
+$("openFolder").onclick = () => { if (sock && sock.readyState === 1) sock.send(JSON.stringify({ type: "open", what: "folder" })); };
+$("copyPath").onclick = async () => {
+  const t = $("donePath").textContent;
+  try { await navigator.clipboard.writeText(t); $("copyPath").textContent = "Copied"; }
+  catch { const r = document.createRange(); r.selectNodeContents($("donePath")); getSelection().removeAllRanges(); getSelection().addRange(r); }
+  setTimeout(() => { $("copyPath").textContent = "Copy path"; }, 1500);
+};
+
+let lastMix = null;
 function connect() {
   sock = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws?role=console&k=${encodeURIComponent(key)}&lead=${encodeURIComponent(lead)}`);
   sock.onopen = render;
   sock.onmessage = (e) => {
     let m; try { m = JSON.parse(e.data); } catch { return; }
-    if (m.type === "status") { status = m; checkMedia(m.media || []); }
+    if (m.type === "status") {
+      status = m; checkMedia(m.media || []);
+      const mk = m.mix ? `${m.mix.state} ${m.mix.path || m.mix.error || ""}` : null;
+      if (mk && mk !== lastMix && ["done", "error"].includes(m.mix.state)) log(m.mix.state === "done" ? `mixed: ${m.mix.path}` : `mix failed: ${m.mix.error}`);
+      lastMix = mk;
+    }
     else if (m.type === "level") { levels[m.part] = { v: m.v, at: Date.now() }; }
-    else if (m.type === "rec") { log(`REC ${m.state}${m.session ? " · " + m.session : ""}`); if (status) status.rec = m; }
+    else if (m.type === "rec") {
+      log(`REC ${m.state}${m.session ? " · " + m.session : ""}`);
+      // until the next status: no stale "starting" or an old take's mix result
+      if (status) { status.rec = m; status.starting = false; if (m.state !== "stopped") status.mix = null; else if (status.mix && status.mix.state === "done") status.mix = null; }
+    }
+    else if (m.type === "rec-error") { lastError = { text: m.text, at: Date.now() }; log(m.text); }
+    else if (m.type === "note") log(m.text);
     else if (m.type === "gap") { const n = status?.speakers.find((x) => x.part === m.part)?.name ?? m.part; log(`${n}: ${m.state === "hidden" ? "LEFT the remote page during REC" : "came back, recording resumed"}`); }
     render();
   };
   sock.onclose = () => { render(); setTimeout(connect, 1500); };
 }
-setInterval(render, 250);   // the level meters
+setInterval(render, 250);   // the level meters and the clock
 connect();
 </script>
 </body>

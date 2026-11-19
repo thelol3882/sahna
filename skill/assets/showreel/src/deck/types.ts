@@ -66,7 +66,8 @@ export type Msg =
   | { type: "state"; state: DeckState }
   | { type: "cmd"; cmd: Cmd; index?: number; t?: number }
   | { type: "role"; lead: boolean }
-  | { type: "sync"; state: DeckState }
+  | { type: "sync"; state: DeckState; resume?: boolean }
   | { type: "level"; part: number; v: number }
+  | { type: "frame"; part: number; data: string }
   /** local only: the current part finished, the deck waits for → */
   | { type: "wait"; index: number; step: number; waiting: boolean };

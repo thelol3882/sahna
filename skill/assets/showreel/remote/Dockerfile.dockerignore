@@ -11,3 +11,5 @@ remote/obs-scene-collection.json
 *.zip
 *.mkv
 media
+remote/test
+remote/__pycache__

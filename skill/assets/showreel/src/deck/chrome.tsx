@@ -3,7 +3,7 @@ import { gsap, useGSAP } from "../gsap";
 import type { SceneDef } from "./types";
 import { DECK } from "./config";
 import { slideNo, fmt, labelTime, MAIN, nameOf, partOf } from "./util";
-import { voice } from "./remote-client";
+import { camera, voice } from "./remote-client";
 
 /**
  * Step bars (§3): one per part (entrance + each step), filled in real time from the timeline.
@@ -155,6 +155,7 @@ export function HelpPanel({ onClose }: { onClose: () => void }) {
 
 const LIVE_MS = 2500; // a phone that sent a level in this time counts as live
 const TALK = 0.12;    // level that counts as talking
+const CAM_MS = 1500;  // a camera that sent a frame in this time shows the face instead of the initials
 
 /** The scene's speaker, plus anyone else whose phone hears them talking right now. */
 export function SpeakerChips({ scene }: { scene: SceneDef }) {
@@ -183,6 +184,8 @@ export function SpeakerChips({ scene }: { scene: SceneDef }) {
 function SpeakerChip({ speaker, hero }: { speaker: string; hero: boolean }) {
   const ref = useRef<HTMLSpanElement>(null);
   const bars = useRef<HTMLSpanElement>(null);
+  const face = useRef<HTMLSpanElement>(null);
+  const img = useRef<HTMLImageElement>(null);
   const name = nameOf(speaker);
   const initials = name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2);
   const part = partOf(speaker);
@@ -196,8 +199,17 @@ function SpeakerChip({ speaker, hero }: { speaker: string; hero: boolean }) {
     if (!el || !chip) return;
     const is = Array.from(el.children) as HTMLElement[];
     const shape = [0.65, 1, 0.8];
-    let level = 0, lastTalk = 0;
+    let level = 0, lastTalk = 0, shown = "";
     const update = () => {
+      // the phone camera: the round avatar grows into a face; no frames for a moment, back to the initials
+      const c = camera[part], f = face.current, im = img.current;
+      const camOn = !!c && Date.now() - c.at < CAM_MS;
+      if (f && im) {
+        f.classList.toggle("cam", camOn);
+        if (camOn && c.src !== shown) { im.src = c.src; shown = c.src; }
+        if (!camOn) shown = "";
+        f.style.boxShadow = camOn && level > TALK ? `0 0 0 ${3 + level * 5}px color-mix(in srgb, var(--color-accent) ${Math.round(45 + level * 40)}%, transparent)` : "";
+      }
       const x = voice[part];
       const live = !!x && Date.now() - x.at < LIVE_MS;
       el.classList.toggle("live", live);
@@ -216,7 +228,10 @@ function SpeakerChip({ speaker, hero }: { speaker: string; hero: boolean }) {
   return (
     <span ref={ref} className="flex items-center gap-4 rounded-full pl-2 pr-6 py-2"
       style={{ background: hero ? "rgb(255 255 255 / 0.08)" : "var(--color-surface)", border: `1px solid ${hero ? "rgb(255 255 255 / 0.18)" : "var(--color-line)"}`, transition: "box-shadow 120ms, opacity 400ms" }}>
-      <span className="grid place-items-center size-[44px] rounded-full text-[17px] font-bold" style={{ background: "var(--color-primary)", color: "var(--color-on-primary)" }}>{initials}</span>
+      <span ref={face} className="spk-face relative grid place-items-center rounded-full text-[17px] font-bold overflow-hidden" style={{ background: "var(--color-primary)", color: "var(--color-on-primary)" }}>
+        {initials}
+        <img ref={img} alt="" className="absolute inset-0 size-full object-cover" />
+      </span>
       <span className="flex flex-col leading-tight">
         <span className="text-[22px] font-semibold" style={{ color: hero ? "var(--color-hero-ink)" : "var(--color-ink)" }}>{name}</span>
         <span className="text-[14px] tracking-[0.14em] flex items-center gap-2" style={{ color: hero ? "var(--color-hero-muted)" : "var(--color-muted)" }}>

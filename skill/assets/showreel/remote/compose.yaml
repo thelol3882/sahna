@@ -1,5 +1,6 @@
-# Deck remote with a public link through a Cloudflare quick tunnel. Usually started by remote/start.py:
+# Deck remote with a public link through a Cloudflare quick tunnel. Started by npm run record (remote/start.py):
 #   REMOTE_KEY=... LEAD_KEY=... docker compose -p <name> -f remote/compose.yaml up --build -d
+# OBS runs on the host: the server reaches its WebSocket server (obs-websocket, port 4455) at host.docker.internal.
 name: deck-remote
 services:
   remote:
@@ -10,6 +11,12 @@ services:
       REMOTE_KEY: ${REMOTE_KEY:?set REMOTE_KEY, for example REMOTE_KEY=$(openssl rand -hex 6)}
       LEAD_KEY: ${LEAD_KEY:-}
       MEDIA_DIR: /app/media
+      OBS_URL: ${OBS_URL:-ws://host.docker.internal:4455}
+      OBS_PASSWORD: ${OBS_PASSWORD:-}
+      OBS_DECK_URL: ${OBS_DECK_URL:-}
+    extra_hosts:
+      # Docker Desktop has host.docker.internal already; Linux needs this line
+      - "host.docker.internal:host-gateway"
     # on Linux the recordings folder belongs to you, not to the container user
     user: "${REMOTE_UID:-1000}:${REMOTE_GID:-1000}"
     volumes:

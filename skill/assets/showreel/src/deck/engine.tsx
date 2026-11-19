@@ -197,6 +197,7 @@ function Deck({ startId }: { startId: string }) {
   const role = useRef<"none" | "lead" | "follower">("none"); // set by the remote server
   // follower: the lead's state that arrived during a transition or before start, applied when free
   const pendingSync = useRef<DeckState | null>(null);
+  const resumeSync = useRef(false);
   const waiting = useRef(false);
   const ready = useRef(new Set<string>());
   const started = useRef(false);
@@ -477,8 +478,10 @@ function Deck({ startId }: { startId: string }) {
     if (m.type === "role") { isLead.current = m.lead; role.current = m.lead ? "lead" : "follower"; }
     // a follower repeats the lead's PLACE (scene and step), not its key presses: a press that only
     // finishes an animation on the lead must not move a follower whose animation is already done
-    if (m.type === "sync" && isFollower()) {
+    // resume: this lead deck was opened again during a talk; it goes to where the talk is
+    if (m.type === "sync" && (isFollower() || m.resume)) {
       pendingSync.current = m.state;
+      resumeSync.current = !!m.resume;
       if (!busy.current && started.current) flushSync();
     }
     if (m.type !== "cmd") return;
@@ -502,7 +505,12 @@ function Deck({ startId }: { startId: string }) {
   function flushSync() {
     const st = pendingSync.current;
     pendingSync.current = null;
-    if (st && isFollower()) nav.current.follow(st);
+    const resume = resumeSync.current;
+    resumeSync.current = false;
+    if (!st) return;
+    // a reopened lead: straight to the place, no transition
+    if (resume && !isFollower()) { if (st.index !== pos.current.index || st.step !== pos.current.step) goScene(st.index, st.step, "seek"); return; }
+    if (isFollower()) nav.current.follow(st);
   }
 
   /** Follower: go to the lead's scene and step (also a late joiner's first sync). */
