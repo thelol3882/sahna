@@ -1,0 +1,55 @@
+{
+  "name": "brutalist",
+  "label": "Raw Data",
+  "pitch": "Concrete paper, black 3 px frames, hard offset shadows, acid highlights. Numbers are the architecture.",
+  "prefers": "light",
+  "dial": "balanced",
+  "darkTheme": true,
+  "fits": [
+    "data journalism",
+    "hackathon",
+    "student project with numbers",
+    "manifesto"
+  ],
+  "signature": "statement",
+  "motion": {
+    "enter": "power4.out",
+    "move": "expo.inOut",
+    "exit": "power3.in",
+    "fast": 0.25,
+    "base": 0.5,
+    "slow": 0.8,
+    "stagger": 0.03
+  },
+  "transitions": {
+    "grammar": "A: hard cuts and slabs",
+    "speaker": [
+      "curtain",
+      "blinds",
+      "wipe"
+    ],
+    "within": "rise",
+    "showcase": "pixels in acid + black; no shader"
+  },
+  "classes": [
+    "pk-frame",
+    "pk-frame-bar",
+    "pk-glow",
+    "pk-kicker",
+    "pk-mark",
+    "pk-rule",
+    "pk-slab",
+    "pk-stat",
+    "pk-texture"
+  ],
+  "do": [
+    "Every number in Ubuntu Sans Mono 700, set huge; labels are mono caps.",
+    "Acid yellow is a FILL behind black text (a highlight slab), never a text colour. Keep display line-height >= 1.0: Kazakh descenders (Ұ қ ң) must not hit the slab below.",
+    "Tables are welcome here: thick header rule, mono figures, one acid row."
+  ],
+  "dont": [
+    "No rounded corners, no blur, no gradients, no glow.",
+    "Do not mix in soft shadows; the shadow is a hard 8 px offset or nothing.",
+    "Not for a calm academic jury unless the topic is the data itself."
+  ]
+}

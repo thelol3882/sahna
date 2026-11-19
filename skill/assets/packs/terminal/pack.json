@@ -1,0 +1,55 @@
+{
+  "name": "terminal",
+  "label": "Phosphor Terminal",
+  "pitch": "Mono-forward, phosphor green on near-black, amber for warnings. Commands and their output tell the story.",
+  "prefers": "dark",
+  "dial": "balanced",
+  "darkTheme": true,
+  "fits": [
+    "security",
+    "systems",
+    "CLI / dev tools",
+    "incident reports"
+  ],
+  "signature": "window",
+  "motion": {
+    "enter": "power2.out",
+    "move": "power2.inOut",
+    "exit": "power1.in",
+    "fast": 0.2,
+    "base": 0.45,
+    "slow": 0.8,
+    "stagger": 0.03
+  },
+  "transitions": {
+    "grammar": "B: clear / new tab between scenes",
+    "speaker": [
+      "blinds",
+      "pixels"
+    ],
+    "within": "rise",
+    "showcase": "pixels (16×9 phosphor squares) at speaker changes"
+  },
+  "classes": [
+    "pk-caret",
+    "pk-frame",
+    "pk-frame-bar",
+    "pk-glow",
+    "pk-kicker",
+    "pk-mark",
+    "pk-prompt",
+    "pk-rule",
+    "pk-stat",
+    "pk-texture"
+  ],
+  "do": [
+    "Every scene is a command and its output: prompt line in mono, the result as a real UI block.",
+    "Explain in IBM Plex Sans; mono only for commands, paths, numbers.",
+    "Amber only for warnings and the one number that matters."
+  ],
+  "dont": [
+    "No green-on-black body paragraphs; prose goes on a card in sans.",
+    "No fake 'hacker' rain or glitch on every step; one decode moment per talk at most.",
+    "On a classroom projector, use the light 'paper terminal' palette for content scenes."
+  ]
+}

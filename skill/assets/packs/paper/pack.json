@@ -1,0 +1,55 @@
+{
+  "name": "paper",
+  "label": "Paper Research",
+  "pitch": "Warm paper, serif headlines, ink-blue links and oxblood annotations. A living document read aloud.",
+  "prefers": "light",
+  "dial": "academic",
+  "darkTheme": false,
+  "fits": [
+    "thesis defence",
+    "research talk",
+    "law / policy",
+    "literature"
+  ],
+  "signature": "annotated",
+  "motion": {
+    "enter": "power2.out",
+    "move": "power2.inOut",
+    "exit": "power1.in",
+    "fast": 0.3,
+    "base": 0.6,
+    "slow": 0.9,
+    "stagger": 0.06
+  },
+  "transitions": {
+    "grammar": "B: page scroll / rise",
+    "speaker": [
+      "rise",
+      "push"
+    ],
+    "within": "rise",
+    "showcase": "not recommended"
+  },
+  "classes": [
+    "pk-cite",
+    "pk-frame",
+    "pk-frame-bar",
+    "pk-glow",
+    "pk-kicker",
+    "pk-margin",
+    "pk-mark",
+    "pk-rule",
+    "pk-stat",
+    "pk-texture"
+  ],
+  "do": [
+    "Headlines in Literata as full sentences; body and labels in Source Sans 3.",
+    "The hand is a highlighter: mark ONE phrase per step with --color-highlight, margin notes in oxblood.",
+    "Cite the source on every data scene (footer `source`)."
+  ],
+  "dont": [
+    "No dark scenes, no glow, no glass; the hero is light paper too.",
+    "No serif below 24 px (it thins out on projectors).",
+    "No italic paragraphs; italic for one term at a time."
+  ]
+}

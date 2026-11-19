@@ -1,0 +1,57 @@
+{
+  "name": "aurora",
+  "label": "Aurora Launch",
+  "pitch": "Launch-night hero: a slow aurora over a deep ink sky, glass panels, big thin numbers. Northern light, not neon.",
+  "prefers": "dark",
+  "dial": "showcase",
+  "darkTheme": true,
+  "fits": [
+    "product launch",
+    "demo day final",
+    "startup pitch",
+    "hackathon finals"
+  ],
+  "signature": "glass",
+  "motion": {
+    "enter": "expo.out",
+    "move": "expo.inOut",
+    "exit": "power3.in",
+    "fast": 0.4,
+    "base": 0.9,
+    "slow": 1.4,
+    "stagger": 0.07
+  },
+  "transitions": {
+    "grammar": "A: variety at speaker changes",
+    "speaker": [
+      "circle",
+      "shape",
+      "split",
+      "zoom"
+    ],
+    "within": "rise",
+    "showcase": "shader at 2-3 speaker changes, one throughZoom into the demo"
+  },
+  "classes": [
+    "pk-frame",
+    "pk-frame-bar",
+    "pk-glass",
+    "pk-glow",
+    "pk-gradient-text",
+    "pk-kicker",
+    "pk-mark",
+    "pk-rule",
+    "pk-stat",
+    "pk-texture"
+  ],
+  "do": [
+    "The aurora lives on hero scenes and drifts slowly (20-40 s loop); content scenes get at most a faint wash.",
+    "Glass only over the aurora, never over flat colour (it just looks grey).",
+    "Big numbers in Geologica 300: thin and large reads premium; bold and large reads loud."
+  ],
+  "dont": [
+    "No gradient text on body copy; gradient fill only on ONE hero number or word.",
+    "Under academic/balanced the aurora degrades to a static soft gradient on the hero only.",
+    "No more than one glowing element per scene."
+  ]
+}

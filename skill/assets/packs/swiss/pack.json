@@ -1,0 +1,54 @@
+{
+  "name": "swiss",
+  "label": "Swiss Grid",
+  "pitch": "Editorial grid, huge type, one signal red. Structure and scale carry the story, not effects.",
+  "prefers": "light",
+  "dial": "balanced",
+  "darkTheme": true,
+  "fits": [
+    "research with a strong claim",
+    "design",
+    "humanities",
+    "keynote"
+  ],
+  "signature": "statement",
+  "motion": {
+    "enter": "power4.out",
+    "move": "power2.inOut",
+    "exit": "power2.in",
+    "fast": 0.3,
+    "base": 0.6,
+    "slow": 0.9,
+    "stagger": 0.04
+  },
+  "transitions": {
+    "grammar": "B: one grammar (push between sections, rise inside)",
+    "speaker": [
+      "push",
+      "wipe"
+    ],
+    "within": "rise",
+    "showcase": "blinds into the end scene; no shader"
+  },
+  "classes": [
+    "pk-frame",
+    "pk-frame-bar",
+    "pk-glow",
+    "pk-index",
+    "pk-kicker",
+    "pk-mark",
+    "pk-rule",
+    "pk-stat",
+    "pk-texture"
+  ],
+  "do": [
+    "Set the title as the image: one statement, 2-3 lines, flush left on the 12-column grid.",
+    "Red marks ONE thing per scene (a word, a bar, a rule). Everything else is black, grey, white.",
+    "Use thick rules and numbered sections (01, 02) as structure instead of boxes."
+  ],
+  "dont": [
+    "No rounded cards, no drop shadows, no gradients.",
+    "Do not centre text blocks; the grid is the look.",
+    "Do not shrink the title to fit more text: cut the text."
+  ]
+}

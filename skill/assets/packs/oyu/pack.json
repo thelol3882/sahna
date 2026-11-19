@@ -1,0 +1,56 @@
+{
+  "name": "oyu",
+  "label": "Oyu Modern",
+  "pitch": "Contemporary Kazakh geometry: a ram's-horn (qoshqar müiz) rosette redrawn as a precise line module, on felt ivory and lapis night.",
+  "prefers": "light",
+  "dial": "balanced",
+  "darkTheme": true,
+  "fits": [
+    "Kazakhstan-rooted products",
+    "culture / history",
+    "city & public sector",
+    "NU / local audience"
+  ],
+  "signature": "ornament",
+  "motion": {
+    "enter": "power3.out",
+    "move": "power3.inOut",
+    "exit": "power2.in",
+    "fast": 0.35,
+    "base": 0.7,
+    "slow": 1.1,
+    "stagger": 0.06
+  },
+  "transitions": {
+    "grammar": "B with an ornament wipe at speaker changes",
+    "speaker": [
+      "stroke",
+      "curtain"
+    ],
+    "within": "rise",
+    "showcase": "stroke wipe drawn along the ornament path"
+  },
+  "classes": [
+    "pk-frame",
+    "pk-frame-bar",
+    "pk-glow",
+    "pk-kicker",
+    "pk-mark",
+    "pk-ornament",
+    "pk-ornament-band",
+    "pk-ornament-field",
+    "pk-rule",
+    "pk-stat",
+    "pk-texture"
+  ],
+  "do": [
+    "The ornament is structure: a band along one edge, a divider, a corner mark, the progress line. Draw it with DrawSVG.",
+    "One module (the four-horn rosette), line-only, one colour (madder on light, terracotta on lapis).",
+    "Kazakh text everywhere it belongs: every face of this pack covers ә ғ қ ң ө ұ ү һ і."
+  ],
+  "dont": [
+    "No yurts, eagles, dombras, flag sky-blue + gold pairing or folk clip art as decoration.",
+    "Never put ornament behind body text or data; at most 6 % opacity as a field, and only on hero scenes.",
+    "Do not mix several traditional motifs in one deck; one module, used with precision."
+  ]
+}

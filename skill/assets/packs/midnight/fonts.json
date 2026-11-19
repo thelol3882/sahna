@@ -1,0 +1,158 @@
+{
+  "lang": "kk",
+  "faces": {
+    "display": {
+      "family": "Onest",
+      "package": "@fontsource/onest",
+      "weights": [
+        500,
+        600,
+        700
+      ],
+      "subsets": [
+        "latin",
+        "latin-ext",
+        "cyrillic",
+        "cyrillic-ext"
+      ],
+      "local_text": true,
+      "note": "",
+      "version": "5.3.1",
+      "coverage": {
+        "sets": {
+          "latin": true,
+          "latin-ext": true,
+          "cyrillic": true,
+          "kazakh": true,
+          "punct": true,
+          "tenge": true,
+          "arrows": false
+        },
+        "missing": {
+          "arrows": "←→"
+        },
+        "langs": {
+          "en": true,
+          "ru": true,
+          "kk": true
+        }
+      }
+    },
+    "sans": {
+      "family": "Onest",
+      "package": "@fontsource/onest",
+      "weights": [
+        400,
+        500,
+        600
+      ],
+      "subsets": [
+        "latin",
+        "latin-ext",
+        "cyrillic",
+        "cyrillic-ext"
+      ],
+      "local_text": true,
+      "note": "",
+      "version": "5.3.1",
+      "coverage": {
+        "sets": {
+          "latin": true,
+          "latin-ext": true,
+          "cyrillic": true,
+          "kazakh": true,
+          "punct": true,
+          "tenge": true,
+          "arrows": false
+        },
+        "missing": {
+          "arrows": "←→"
+        },
+        "langs": {
+          "en": true,
+          "ru": true,
+          "kk": true
+        }
+      }
+    },
+    "mono": {
+      "family": "Geist Mono",
+      "package": "@fontsource/geist-mono",
+      "weights": [
+        400,
+        500
+      ],
+      "subsets": [
+        "latin",
+        "latin-ext",
+        "cyrillic",
+        "cyrillic-ext"
+      ],
+      "local_text": true,
+      "note": "labels, code; covers Kazakh, no ₸ glyph",
+      "version": "5.3.0",
+      "coverage": {
+        "sets": {
+          "latin": true,
+          "latin-ext": true,
+          "cyrillic": true,
+          "kazakh": true,
+          "punct": true,
+          "tenge": false,
+          "arrows": false
+        },
+        "missing": {
+          "tenge": "₸",
+          "arrows": "←→"
+        },
+        "langs": {
+          "en": true,
+          "ru": true,
+          "kk": true
+        }
+      }
+    }
+  },
+  "rejected": [
+    {
+      "family": "JetBrains Mono",
+      "why": "no Ғ ғ Қ қ Ң ң Ұ ұ (Kazakh)"
+    },
+    {
+      "family": "Unbounded",
+      "why": "no Ғ ғ Қ қ Ң ң Ү ү (Kazakh)"
+    },
+    {
+      "family": "Manrope",
+      "why": "no Ғ ғ Қ қ Ң ң Ұ ұ (Kazakh)"
+    },
+    {
+      "family": "Martian Mono",
+      "why": "no Ғ ғ Қ қ Ң ң Ү ү (Kazakh)"
+    },
+    {
+      "family": "Playfair Display",
+      "why": "no Ғ ғ Қ қ Ң ң Ү ү (Kazakh)"
+    },
+    {
+      "family": "Wix Madefor Display / Text",
+      "why": "no Ғ ғ Қ қ Ң ң Ү ү (Kazakh)"
+    },
+    {
+      "family": "Jura",
+      "why": "no Ғ ғ Қ қ Ң ң Ү ү (Kazakh)"
+    },
+    {
+      "family": "Jost",
+      "why": "no Kazakh letters, no №"
+    },
+    {
+      "family": "Space Grotesk, Sora, DM Sans, Outfit, Lexend, Figtree, Albert Sans, Work Sans, Plus Jakarta Sans, Instrument Sans, Red Hat Display",
+      "why": "no Cyrillic at all"
+    },
+    {
+      "family": "Victor Mono",
+      "why": "no №"
+    }
+  ]
+}

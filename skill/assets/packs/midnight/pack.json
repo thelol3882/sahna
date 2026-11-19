@@ -1,0 +1,55 @@
+{
+  "name": "midnight",
+  "label": "Midnight Product",
+  "pitch": "Dark, precise product launch. Light is a material: hairline edges catch a cool glow, one warm filament accent.",
+  "prefers": "dark",
+  "dial": "showcase",
+  "darkTheme": true,
+  "fits": [
+    "product pitch",
+    "demo day",
+    "dev tools",
+    "SaaS"
+  ],
+  "signature": "window",
+  "motion": {
+    "enter": "expo.out",
+    "move": "power3.inOut",
+    "exit": "power2.in",
+    "fast": 0.35,
+    "base": 0.8,
+    "slow": 1.2,
+    "stagger": 0.05
+  },
+  "transitions": {
+    "grammar": "A at speaker changes, B inside a part",
+    "speaker": [
+      "circle",
+      "zoom",
+      "split"
+    ],
+    "within": "rise",
+    "showcase": "a shader transition at 2-3 speaker changes (falls back to circle)"
+  },
+  "classes": [
+    "pk-frame",
+    "pk-frame-bar",
+    "pk-glow",
+    "pk-hairline",
+    "pk-kicker",
+    "pk-mark",
+    "pk-rule",
+    "pk-stat",
+    "pk-texture"
+  ],
+  "do": [
+    "Let light do the work: a hairline edge, a glow behind ONE element per scene, a soft top light on the hero.",
+    "Keep data scenes on the light content palette unless DECK.style is showcase.",
+    "Use the warm accent once per scene: the number or word the audience must keep."
+  ],
+  "dont": [
+    "No neon outlines on every card; no glow on text.",
+    "No purple-to-pink gradients, they read as stock AI branding.",
+    "Do not put body text under 24 px on the near-black canvas (projectors crush it)."
+  ]
+}

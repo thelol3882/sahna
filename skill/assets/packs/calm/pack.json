@@ -1,0 +1,52 @@
+{
+  "name": "calm",
+  "label": "Calm Academic",
+  "pitch": "Projector-safe and quiet: off-white, deep ink, one blue, generous type. Motion only where it explains.",
+  "prefers": "light",
+  "dial": "academic",
+  "darkTheme": false,
+  "fits": [
+    "course defence",
+    "teacher / jury",
+    "conference room projector",
+    "lecture"
+  ],
+  "signature": "annotated",
+  "motion": {
+    "enter": "power2.out",
+    "move": "power2.inOut",
+    "exit": "power1.in",
+    "fast": 0.3,
+    "base": 0.55,
+    "slow": 0.8,
+    "stagger": 0.05
+  },
+  "transitions": {
+    "grammar": "B: one calm grammar (fade, rise, push)",
+    "speaker": [
+      "push"
+    ],
+    "within": "rise",
+    "showcase": "not recommended"
+  },
+  "classes": [
+    "pk-frame",
+    "pk-frame-bar",
+    "pk-glow",
+    "pk-kicker",
+    "pk-mark",
+    "pk-rule",
+    "pk-stat",
+    "pk-texture"
+  ],
+  "do": [
+    "Body 26-32 px, labels 20 px; it must read from the back row of a washed-out projector.",
+    "One idea per scene; shared-element moves (data-shared) to explain change.",
+    "Blue for the subject, amber for the one thing to remember."
+  ],
+  "dont": [
+    "No dark scenes, including the cover.",
+    "No mono for prose; Noto Sans Mono only for code.",
+    "Do not lower contrast for 'elegance': muted text stays at least 4.5:1 after the projector simulation."
+  ]
+}
