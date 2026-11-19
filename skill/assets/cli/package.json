@@ -1,0 +1,18 @@
+{
+  "name": "sahna-cli",
+  "version": "1.0.0",
+  "description": "sahna: one CLI for animated-web-deck projects: interactive menu for people, subcommands with --json for Claude.",
+  "type": "module",
+  "bin": {
+    "sahna": "bin/sahna.js",
+    "deck": "bin/sahna.js"
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "license": "MIT",
+  "private": true
+}

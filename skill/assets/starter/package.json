@@ -3,7 +3,12 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "bin": {
+    "sahna": "scripts/sahna.mjs",
+    "deck": "scripts/sahna.mjs"
+  },
   "scripts": {
+    "sahna": "node scripts/sahna.mjs",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "build:single": "tsc -b && vite build --mode single",
