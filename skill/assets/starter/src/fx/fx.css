@@ -1,0 +1,122 @@
+/* FX kit styles. Colours come from theme tokens; the --fx-* tokens below are the only extra knobs. */
+/* Fonts and colours come from the theme tokens (src/theme.css or a style pack): --font-display, --color-*.
+   Dark scenes are .scene.hero (FxScene sets it from the dial) and take the dark token block of theme.css. */
+
+/* light as material: the glow colours (aurora, beams, spotlight, dot glow). Declared on every scene so they
+   resolve against that scene's own tokens (a custom property referencing var() resolves where it is declared). */
+:root, .scene {
+  --fx-glow: var(--color-primary);
+  --fx-glow-2: color-mix(in oklab, var(--color-primary) 55%, #7fd3ff);
+}
+/* the protagonist lives outside the scenes: its own fixed pair that reads on light and dark */
+.fx-protagonist-layer, .fx-pstatic { --fx-p1: #5867F2; --fx-p2: #A9B6FF; }
+.scene.hero { color-scheme: dark; }
+
+/* ---------------------------------------------------------------- type */
+.fx-display { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.045em; line-height: 0.98; text-wrap: balance; font-feature-settings: "ss01", "ss02"; }
+.fx-title { font-family: var(--font-display); font-weight: 600; font-size: 84px; line-height: 1.02; letter-spacing: -0.04em; text-wrap: balance; }
+.fx-lede { font-size: 30px; line-height: 1.45; color: var(--color-ink-2); letter-spacing: -0.005em; text-wrap: pretty; }
+.fx-eyebrow { font-family: var(--font-display); font-size: 20px; font-weight: 500; letter-spacing: 0.02em; color: var(--color-muted); display: inline-flex; align-items: center; gap: 12px; white-space: nowrap; }
+.fx-chip { display: inline-flex; align-items: center; gap: 12px; padding: 10px 20px 10px 14px; border-radius: 999px; font-size: 20px; font-weight: 500; white-space: nowrap;
+  border: 1px solid var(--color-line); background: color-mix(in srgb, var(--color-surface) 70%, transparent); color: var(--color-ink-2); }
+.fx-chip-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--fx-glow); box-shadow: 0 0 12px 2px color-mix(in srgb, var(--fx-glow) 60%, transparent); }
+.fx-grad-text { background: linear-gradient(180deg, var(--color-ink) 30%, color-mix(in srgb, var(--color-ink) 55%, transparent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+/* academic: plain ink (the dial: no gradient text) */
+html[data-style="academic"] .fx-grad-text { background: none; -webkit-background-clip: border-box; background-clip: border-box; color: var(--color-ink); }
+/* SplitText line masks must not clip descenders or the gradient text */
+.fx-line-mask { padding-bottom: 0.08em; margin-bottom: -0.08em; }
+.fx-line { background: inherit; -webkit-background-clip: inherit; background-clip: inherit; }
+
+/* decode(): every character keeps its final width; the scramble glyph sits on top */
+.fx-dc-w { display: inline-block; white-space: nowrap; }
+.fx-dc { position: relative; display: inline-block; }
+.fx-dc > i { position: absolute; left: 50%; top: 0; transform: translateX(-50%); font-style: normal; color: var(--fx-glow); opacity: 0.85; }
+.fx-dc[data-s="0"] { color: transparent; }
+.fx-dc[data-s="0"] > i { visibility: hidden; }
+.fx-dc[data-s="1"] { color: transparent; }
+.fx-dc[data-s="2"] > i { visibility: hidden; }
+
+/* odometer(): rolling digit columns */
+.fx-odo { display: inline-flex; align-items: flex-start; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fx-odo-col { display: inline-block; position: relative; overflow: hidden; height: 1em; line-height: 1;
+  -webkit-mask-image: linear-gradient(transparent 0, #000 7%, #000 93%, transparent 100%); mask-image: linear-gradient(transparent 0, #000 7%, #000 93%, transparent 100%); }
+.fx-odo-col > span { display: flex; flex-direction: column; }
+.fx-odo-col > span > b { display: block; height: 1em; line-height: 1; font-weight: inherit; text-align: center; }
+.fx-odo-sep { display: inline-block; height: 1em; line-height: 1; }
+
+/* ---------------------------------------------------------------- light */
+.fx-beam { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+.fx-beam rect, .fx-beam path { fill: none; vector-effect: non-scaling-stroke; }
+.fx-beam { will-change: transform; } /* own layer: the comet repaints only itself, not the masked dot grid under it */
+
+.fx-spot { position: absolute; inset: 0; pointer-events: none; opacity: 0; --sx: 960px; --sy: 540px; --rw: 300px; --rh: 120px; }
+.fx-spot-veil { position: absolute; inset: 0; background: color-mix(in srgb, var(--color-canvas) 72%, transparent);
+  -webkit-mask-image: radial-gradient(var(--rw) var(--rh) at var(--sx) var(--sy), transparent 0%, transparent 55%, #000 100%);
+  mask-image: radial-gradient(var(--rw) var(--rh) at var(--sx) var(--sy), transparent 0%, transparent 55%, #000 100%); }
+.hero .fx-spot-veil { background: rgb(4 5 8 / 0.62); }
+.fx-spot-light { position: absolute; inset: 0; mix-blend-mode: multiply;
+  background: radial-gradient(var(--rw) var(--rh) at var(--sx) var(--sy), color-mix(in srgb, var(--fx-glow) 7%, transparent), transparent 70%); }
+.hero .fx-spot-light { mix-blend-mode: screen;
+  background: radial-gradient(var(--rw) var(--rh) at var(--sx) var(--sy), color-mix(in srgb, var(--fx-glow) 16%, transparent), transparent 70%); }
+/* academic: a calm focus ring instead of light */
+.fx-spot-ring { position: absolute; left: 0; top: 0; border: 3px solid var(--color-primary); border-radius: 18px; box-shadow: 0 0 0 8px color-mix(in srgb, var(--color-primary) 12%, transparent); }
+
+.fx-dots, .fx-dots-glow { position: absolute; inset: 0; pointer-events: none; will-change: transform;
+  background-image: radial-gradient(circle at center, var(--fx-dot, color-mix(in srgb, var(--color-ink) 16%, transparent)) 1.4px, transparent 1.9px);
+  background-size: var(--fx-dot-gap, 32px) var(--fx-dot-gap, 32px); background-position: center; }
+.fx-dots { -webkit-mask-image: radial-gradient(ellipse 75% 70% at 50% 45%, #000 40%, transparent 100%); mask-image: radial-gradient(ellipse 75% 70% at 50% 45%, #000 40%, transparent 100%); }
+.fx-dots-glow { --fx-dot: var(--fx-glow); --gx: 50%; --gy: 50%; --gr: 360px; opacity: 0;
+  background-image: radial-gradient(circle at center, var(--fx-glow) 1.9px, transparent 2.6px);
+  -webkit-mask-image: radial-gradient(circle var(--gr) at var(--gx) var(--gy), #000 0%, rgb(0 0 0 / 0.35) 45%, transparent 100%);
+  mask-image: radial-gradient(circle var(--gr) at var(--gx) var(--gy), #000 0%, rgb(0 0 0 / 0.35) 45%, transparent 100%); }
+
+.fx-aurora { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.fx-aurora-fade { position: absolute; inset: 0; background: linear-gradient(180deg, transparent 45%, var(--color-canvas) 100%); }
+
+/* ---------------------------------------------------------------- depth */
+.fx-grain { position: absolute; inset: 0; pointer-events: none; opacity: 0.5;
+  /* plain alpha specks, no blend mode: a blend would re-composite the whole scene on every animated frame */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.16 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.hero .fx-grain { opacity: 0.55; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.11 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E"); }
+
+.fx-glass { position: relative; border-radius: 32px; isolation: isolate;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.78), rgb(255 255 255 / 0.55));
+  -webkit-backdrop-filter: blur(28px) saturate(150%); backdrop-filter: blur(28px) saturate(150%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 30px 80px rgb(20 24 40 / 0.14); }
+.hero .fx-glass { background: linear-gradient(180deg, rgb(255 255 255 / 0.075), rgb(255 255 255 / 0.025));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12), 0 30px 80px rgb(0 0 0 / 0.35); }
+/* border light: a 1px gradient ring, bright at the top-left like a lit edge */
+.fx-glass::before { content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none;
+  background: linear-gradient(140deg, rgb(255 255 255 / 1), rgb(20 24 40 / 0.1) 40%, rgb(20 24 40 / 0.08) 70%, rgb(255 255 255 / 0.9));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+.hero .fx-glass::before { background: linear-gradient(140deg, rgb(255 255 255 / 0.5), rgb(255 255 255 / 0.08) 35%, rgb(255 255 255 / 0.04) 65%, rgb(255 255 255 / 0.22)); }
+.fx-glass-flat { border-radius: 32px; background: var(--color-surface); border: 1px solid var(--color-line); box-shadow: var(--shadow-sm); }
+
+.fx-persp { perspective: 2400px; perspective-origin: 50% 30%; }
+.fx-device { transform-style: preserve-3d; transform-origin: 50% 60%; will-change: transform; }
+.fx-sheen { position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+  background: linear-gradient(115deg, transparent 30%, rgb(255 255 255 / 0.16) 45%, transparent 60%); mix-blend-mode: screen; }
+
+/* ---------------------------------------------------------------- layout */
+.fx-bento { display: grid; }
+.fx-card { position: relative; border-radius: var(--radius-card); background: var(--card-bg); border: var(--card-border);
+  box-shadow: var(--shadow-sm); overflow: hidden; padding: 40px; display: flex; flex-direction: column; color: var(--color-ink); }
+.hero .fx-card { background: linear-gradient(180deg, rgb(255 255 255 / 0.035), rgb(255 255 255 / 0.01)), var(--color-surface);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 20px 60px rgb(0 0 0 / 0.35); }
+.fx-card.fx-has-beam { overflow: visible; }
+.fx-card-label { font-size: 24px; line-height: 1.35; color: var(--color-muted); }
+.fx-card-title { font-family: var(--font-display); font-size: 34px; font-weight: 600; letter-spacing: -0.025em; line-height: 1.12; }
+.fx-stat { font-family: var(--font-display); font-size: 104px; font-weight: 600; letter-spacing: -0.05em; line-height: 1; }
+.fx-icon-tile { width: 64px; height: 64px; border-radius: 18px; display: grid; place-items: center; color: var(--color-primary);
+  background: var(--color-primary-soft); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 22%, transparent); }
+
+/* ---------------------------------------------------------------- protagonist */
+.fx-protagonist-layer { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
+.fx-protagonist, .fx-pstatic { position: absolute; left: 0; top: 0; pointer-events: none; will-change: transform; }
+.fx-protagonist svg, .fx-pstatic svg { display: block; overflow: visible; }
+.fx-pstatic { display: none; }
+.fx-pstatic.fx-always, .export-mode .fx-pstatic.fx-export, .print-mode .fx-pstatic.fx-export { display: block; }
+.export-mode .fx-protagonist-layer { display: none; }
+
+
+.fx-layer { will-change: transform; } /* parallax layers move on the compositor */
