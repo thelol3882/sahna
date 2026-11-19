@@ -1,0 +1,883 @@
+{
+  "$comment": "Generic SaaS shop. C4 levels: context → system (containers) → orders (components). Plus scale and states for the kits.",
+  "context": {
+    "title": "Acme Shop · system context",
+    "direction": "RIGHT",
+    "spacing": 96,
+    "nodes": [
+      {
+        "id": "customer",
+        "title": "Customer",
+        "sub": "web and mobile",
+        "icon": "user",
+        "tone": "entry"
+      },
+      {
+        "id": "admin",
+        "title": "Store admin",
+        "sub": "back office",
+        "icon": "user-cog",
+        "tone": "entry"
+      },
+      {
+        "id": "shop",
+        "title": "Acme Shop",
+        "sub": "the system we build",
+        "icon": "store",
+        "tone": "core",
+        "w": 360,
+        "h": 150,
+        "inside": "system"
+      },
+      {
+        "id": "pay",
+        "title": "Stripe",
+        "sub": "card payments",
+        "icon": "stripe",
+        "tone": "external"
+      },
+      {
+        "id": "mail",
+        "title": "Mailgun",
+        "sub": "transactional email",
+        "icon": "mailgun",
+        "tone": "external"
+      }
+    ],
+    "edges": [
+      {
+        "from": "customer",
+        "to": "shop",
+        "label": "orders"
+      },
+      {
+        "from": "admin",
+        "to": "shop",
+        "label": "manages"
+      },
+      {
+        "from": "shop",
+        "to": "pay",
+        "label": "charges"
+      },
+      {
+        "from": "shop",
+        "to": "mail",
+        "label": "sends"
+      }
+    ]
+  },
+  "system": {
+    "title": "Acme Shop · containers",
+    "direction": "RIGHT",
+    "spacing": 84,
+    "nodes": [
+      {
+        "id": "web",
+        "title": "Web app",
+        "sub": "React SPA",
+        "icon": "react",
+        "tone": "entry",
+        "group": "clients"
+      },
+      {
+        "id": "mobile",
+        "title": "Mobile app",
+        "sub": "iOS · Android",
+        "icon": "smartphone",
+        "tone": "entry",
+        "group": "clients"
+      },
+      {
+        "id": "gw",
+        "title": "API gateway",
+        "sub": "auth · rate limits",
+        "icon": "nginx",
+        "tone": "core"
+      },
+      {
+        "id": "auth",
+        "title": "Auth",
+        "sub": "JWT · sessions",
+        "icon": "key",
+        "group": "services"
+      },
+      {
+        "id": "orders",
+        "title": "Orders",
+        "sub": "Go service",
+        "icon": "go",
+        "group": "services",
+        "inside": "orders"
+      },
+      {
+        "id": "billing",
+        "title": "Billing",
+        "sub": "Go service",
+        "icon": "credit-card",
+        "group": "services"
+      },
+      {
+        "id": "redis",
+        "title": "Redis",
+        "sub": "sessions · cache",
+        "icon": "redis",
+        "tone": "store"
+      },
+      {
+        "id": "pg",
+        "title": "PostgreSQL",
+        "sub": "orders · tenants",
+        "icon": "postgres",
+        "tone": "store"
+      },
+      {
+        "id": "queue",
+        "title": "Queue",
+        "sub": "RabbitMQ",
+        "icon": "rabbitmq",
+        "tone": "queue"
+      },
+      {
+        "id": "worker",
+        "title": "Worker",
+        "sub": "emails · invoices",
+        "icon": "cog"
+      },
+      {
+        "id": "stripe",
+        "title": "Stripe",
+        "sub": "payments",
+        "icon": "stripe",
+        "tone": "external"
+      },
+      {
+        "id": "email",
+        "title": "Mailgun",
+        "sub": "email API",
+        "icon": "mailgun",
+        "tone": "external",
+        "pin": {
+          "below": "worker"
+        }
+      },
+      {
+        "id": "s3",
+        "title": "S3 bucket",
+        "sub": "invoice PDFs",
+        "icon": "bucket",
+        "tone": "store",
+        "pin": {
+          "above": "worker"
+        }
+      }
+    ],
+    "groups": [
+      {
+        "id": "clients",
+        "title": "Clients",
+        "layout": "free"
+      },
+      {
+        "id": "services",
+        "title": "Services",
+        "layout": "free"
+      }
+    ],
+    "edges": [
+      {
+        "from": "web",
+        "to": "gw"
+      },
+      {
+        "from": "mobile",
+        "to": "gw"
+      },
+      {
+        "from": "gw",
+        "to": "auth"
+      },
+      {
+        "from": "gw",
+        "to": "orders"
+      },
+      {
+        "from": "gw",
+        "to": "billing"
+      },
+      {
+        "from": "auth",
+        "to": "redis"
+      },
+      {
+        "from": "orders",
+        "to": "pg"
+      },
+      {
+        "from": "billing",
+        "to": "stripe",
+        "both": true
+      },
+      {
+        "from": "billing",
+        "to": "queue",
+        "hot": true
+      },
+      {
+        "from": "queue",
+        "to": "worker",
+        "hot": true
+      },
+      {
+        "from": "worker",
+        "to": "email",
+        "hot": true
+      },
+      {
+        "from": "worker",
+        "to": "s3"
+      }
+    ],
+    "flows": {
+      "checkout": {
+        "title": "Checkout",
+        "path": [
+          "web",
+          "gw: POST /orders",
+          "auth: verify JWT",
+          "<gw: ok",
+          "orders: create",
+          "pg: INSERT order",
+          "<orders: id 1042",
+          "<gw: 201",
+          "<web: 201 Created"
+        ]
+      },
+      "paid": {
+        "title": "Payment, then async email",
+        "color": "accent",
+        "path": [
+          "web",
+          "gw: POST /pay",
+          "billing: charge",
+          "stripe: PaymentIntent",
+          "<billing: succeeded",
+          {
+            "to": "queue",
+            "label": "order.paid",
+            "async": true
+          },
+          "worker: consume",
+          "email: receipt",
+          {
+            "from": "worker",
+            "to": "s3",
+            "label": "invoice.pdf",
+            "with": true
+          }
+        ]
+      },
+      "tenant-a": {
+        "title": "Tenant A",
+        "path": [
+          "web",
+          "gw",
+          "orders",
+          "pg: SELECT orders",
+          "<orders",
+          "<gw",
+          "<web"
+        ]
+      },
+      "tenant-b": {
+        "title": "Tenant B",
+        "path": [
+          "mobile",
+          "gw",
+          "orders",
+          "pg: SELECT orders",
+          "<orders",
+          "<gw",
+          "<mobile"
+        ]
+      },
+      "email": {
+        "title": "Email delivery",
+        "path": [
+          "billing",
+          {
+            "to": "queue",
+            "async": true
+          },
+          "worker",
+          "email"
+        ]
+      }
+    },
+    "size": "sm"
+  },
+  "orders": {
+    "title": "Orders service · components",
+    "direction": "RIGHT",
+    "spacing": 80,
+    "nodes": [
+      {
+        "id": "o-http",
+        "title": "HTTP handler",
+        "sub": "chi router",
+        "icon": "route",
+        "tone": "entry"
+      },
+      {
+        "id": "o-valid",
+        "title": "Validator",
+        "sub": "schema · limits",
+        "icon": "shield-check",
+        "group": "core"
+      },
+      {
+        "id": "o-svc",
+        "title": "Order service",
+        "sub": "domain rules",
+        "icon": "box",
+        "group": "core"
+      },
+      {
+        "id": "o-repo",
+        "title": "Repository",
+        "sub": "one transaction",
+        "icon": "database",
+        "group": "core"
+      },
+      {
+        "id": "o-outbox",
+        "title": "Outbox",
+        "sub": "same transaction",
+        "icon": "inbox",
+        "tone": "hot"
+      },
+      {
+        "id": "o-relay",
+        "title": "Outbox relay",
+        "sub": "polls · publishes",
+        "icon": "send",
+        "pin": {
+          "below": "o-outbox"
+        }
+      },
+      {
+        "id": "o-pg",
+        "title": "PostgreSQL",
+        "sub": "orders table",
+        "icon": "postgres",
+        "tone": "ghost"
+      },
+      {
+        "id": "o-queue",
+        "title": "Queue",
+        "sub": "order.paid",
+        "icon": "rabbitmq",
+        "tone": "ghost",
+        "pin": {
+          "below": "o-relay"
+        }
+      }
+    ],
+    "groups": [
+      {
+        "id": "core",
+        "title": "Inside one request",
+        "layout": "column"
+      }
+    ],
+    "edges": [
+      {
+        "from": "o-http",
+        "to": "core"
+      },
+      {
+        "id": "core-pg",
+        "from": "core",
+        "to": "o-pg"
+      },
+      {
+        "id": "core-outbox",
+        "from": "core",
+        "to": "o-outbox",
+        "hot": true
+      },
+      {
+        "from": "o-outbox",
+        "to": "o-relay",
+        "hot": true
+      },
+      {
+        "from": "o-relay",
+        "to": "o-queue",
+        "hot": true
+      }
+    ],
+    "flows": {
+      "request": {
+        "title": "One request",
+        "path": [
+          "o-http",
+          {
+            "to": "core",
+            "light": true
+          },
+          "o-pg",
+          "<core",
+          {
+            "to": "o-outbox",
+            "from": "core"
+          },
+          "o-relay",
+          "o-queue"
+        ]
+      }
+    }
+  },
+  "tenancy": {
+    "title": "Two tenants, one database",
+    "direction": "RIGHT",
+    "size": "sm",
+    "spacing": 90,
+    "nodes": [
+      {
+        "id": "ta",
+        "title": "Acme Coffee",
+        "sub": "tenant A · web",
+        "icon": "store",
+        "tone": "entry"
+      },
+      {
+        "id": "tb",
+        "title": "Zhel Cycles",
+        "sub": "tenant B · mobile",
+        "icon": "smartphone",
+        "tone": "entry"
+      },
+      {
+        "id": "tgw",
+        "title": "API gateway",
+        "sub": "JWT → tenant_id",
+        "icon": "nginx",
+        "tone": "core"
+      },
+      {
+        "id": "torders",
+        "title": "Orders",
+        "sub": "SET app.tenant",
+        "icon": "go"
+      },
+      {
+        "id": "tpg",
+        "title": "PostgreSQL",
+        "sub": "RLS policy",
+        "icon": "postgres",
+        "tone": "store"
+      }
+    ],
+    "edges": [
+      {
+        "from": "ta",
+        "to": "tgw"
+      },
+      {
+        "from": "tb",
+        "to": "tgw"
+      },
+      {
+        "from": "tgw",
+        "to": "torders"
+      },
+      {
+        "from": "torders",
+        "to": "tpg"
+      }
+    ],
+    "flows": {
+      "a": {
+        "title": "Acme Coffee",
+        "path": [
+          "ta",
+          "tgw",
+          "torders",
+          "tpg: SELECT *",
+          "<torders",
+          "<tgw",
+          "<ta"
+        ]
+      },
+      "b": {
+        "title": "Zhel Cycles",
+        "path": [
+          "tb",
+          "tgw",
+          "torders",
+          "tpg: SELECT *",
+          "<torders",
+          "<tgw",
+          "<tb"
+        ]
+      }
+    }
+  },
+  "pipeline": {
+    "title": "Receipts pipeline",
+    "direction": "RIGHT",
+    "size": "sm",
+    "spacing": 70,
+    "nodes": [
+      {
+        "id": "pbill",
+        "title": "Billing",
+        "sub": "publishes",
+        "icon": "credit-card"
+      },
+      {
+        "id": "pq",
+        "title": "Queue",
+        "sub": "RabbitMQ",
+        "icon": "rabbitmq",
+        "tone": "queue"
+      },
+      {
+        "id": "pw",
+        "title": "Worker",
+        "sub": "3 consumers",
+        "icon": "cog"
+      },
+      {
+        "id": "pmail",
+        "title": "Mailgun",
+        "sub": "email API",
+        "icon": "mailgun",
+        "tone": "external"
+      },
+      {
+        "id": "ps3",
+        "title": "S3 bucket",
+        "sub": "invoice PDFs",
+        "icon": "bucket",
+        "tone": "store",
+        "pin": {
+          "above": "pw",
+          "gap": 70
+        }
+      }
+    ],
+    "edges": [
+      {
+        "from": "pbill",
+        "to": "pq",
+        "label": "order.paid"
+      },
+      {
+        "from": "pq",
+        "to": "pw"
+      },
+      {
+        "from": "pw",
+        "to": "pmail",
+        "label": "POST /messages"
+      },
+      {
+        "from": "pw",
+        "to": "ps3"
+      }
+    ],
+    "flows": {
+      "publish": {
+        "path": [
+          "pbill",
+          {
+            "to": "pq",
+            "async": true
+          }
+        ]
+      },
+      "deliver": {
+        "title": "Receipt",
+        "path": [
+          "pbill",
+          {
+            "to": "pq",
+            "async": true
+          },
+          "pw",
+          "pmail: send"
+        ]
+      }
+    }
+  },
+  "checkout": {
+    "title": "Checkout trace",
+    "direction": "RIGHT",
+    "size": "sm",
+    "spacing": 100,
+    "nodes": [
+      {
+        "id": "cweb",
+        "title": "Web app",
+        "sub": "React SPA",
+        "icon": "react",
+        "tone": "entry"
+      },
+      {
+        "id": "cgw",
+        "title": "API gateway",
+        "sub": "nginx",
+        "icon": "nginx",
+        "tone": "core"
+      },
+      {
+        "id": "cauth",
+        "title": "Auth",
+        "sub": "JWT",
+        "icon": "key"
+      },
+      {
+        "id": "corders",
+        "title": "Orders",
+        "sub": "Go service",
+        "icon": "go"
+      },
+      {
+        "id": "cpg",
+        "title": "PostgreSQL",
+        "sub": "orders",
+        "icon": "postgres",
+        "tone": "store"
+      }
+    ],
+    "edges": [
+      {
+        "from": "cweb",
+        "to": "cgw"
+      },
+      {
+        "from": "cgw",
+        "to": "cauth"
+      },
+      {
+        "from": "cgw",
+        "to": "corders"
+      },
+      {
+        "from": "corders",
+        "to": "cpg"
+      }
+    ],
+    "flows": {
+      "checkout": {
+        "title": "Checkout",
+        "path": [
+          "cweb",
+          "cgw: POST /orders",
+          "cauth: verify",
+          "<cgw",
+          "corders: create",
+          "cpg: INSERT",
+          "<corders",
+          "<cgw",
+          "<cweb: 201"
+        ]
+      }
+    }
+  },
+  "scale": {
+    "title": "Scale-out",
+    "direction": "RIGHT",
+    "spacing": 110,
+    "nodes": [
+      {
+        "id": "users",
+        "title": "Users",
+        "sub": "Black Friday",
+        "icon": "users",
+        "tone": "entry"
+      },
+      {
+        "id": "lb",
+        "title": "Load balancer",
+        "sub": "round robin",
+        "icon": "split",
+        "tone": "core"
+      },
+      {
+        "id": "api-1",
+        "title": "API · 1",
+        "sub": "4 vCPU",
+        "icon": "server"
+      },
+      {
+        "id": "api-2",
+        "title": "API · 2",
+        "sub": "4 vCPU",
+        "icon": "server"
+      },
+      {
+        "id": "api-3",
+        "title": "API · 3",
+        "sub": "4 vCPU",
+        "icon": "server"
+      },
+      {
+        "id": "cache",
+        "title": "Redis",
+        "sub": "read cache",
+        "icon": "redis",
+        "tone": "store"
+      },
+      {
+        "id": "db",
+        "title": "PostgreSQL",
+        "sub": "primary",
+        "icon": "postgres",
+        "tone": "store"
+      }
+    ],
+    "edges": [
+      {
+        "from": "users",
+        "to": "lb"
+      },
+      {
+        "from": "lb",
+        "to": "api-1"
+      },
+      {
+        "from": "lb",
+        "to": "api-2"
+      },
+      {
+        "from": "lb",
+        "to": "api-3"
+      },
+      {
+        "from": "api-1",
+        "to": "cache"
+      },
+      {
+        "from": "api-2",
+        "to": "cache"
+      },
+      {
+        "from": "api-3",
+        "to": "cache"
+      },
+      {
+        "from": "cache",
+        "to": "db"
+      }
+    ],
+    "flows": {
+      "r1": {
+        "path": [
+          "users",
+          "lb",
+          "api-1",
+          "cache"
+        ]
+      },
+      "r2": {
+        "path": [
+          "users",
+          "lb",
+          "api-2",
+          "cache"
+        ]
+      },
+      "r3": {
+        "path": [
+          "users",
+          "lb",
+          "api-3",
+          "cache"
+        ]
+      }
+    },
+    "size": "sm"
+  },
+  "states": {
+    "title": "Order lifecycle",
+    "direction": "RIGHT",
+    "spacing": 40,
+    "nodes": [
+      {
+        "id": "created",
+        "title": "Created",
+        "icon": "circle-dot",
+        "tone": "entry",
+        "w": 212
+      },
+      {
+        "id": "paid",
+        "title": "Paid",
+        "icon": "credit-card",
+        "w": 212
+      },
+      {
+        "id": "packed",
+        "title": "Packed",
+        "icon": "package",
+        "w": 212
+      },
+      {
+        "id": "shipped",
+        "title": "Shipped",
+        "icon": "truck",
+        "w": 212
+      },
+      {
+        "id": "delivered",
+        "title": "Delivered",
+        "icon": "circle-check",
+        "tone": "core",
+        "w": 212
+      },
+      {
+        "id": "cancelled",
+        "title": "Cancelled",
+        "icon": "circle-x",
+        "tone": "danger",
+        "w": 212
+      }
+    ],
+    "edges": [
+      {
+        "from": "created",
+        "to": "paid",
+        "label": "[paid]"
+      },
+      {
+        "from": "paid",
+        "to": "packed",
+        "label": "[in stock]"
+      },
+      {
+        "from": "packed",
+        "to": "shipped",
+        "label": "[label]"
+      },
+      {
+        "from": "shipped",
+        "to": "delivered",
+        "label": "[signed]"
+      },
+      {
+        "from": "created",
+        "to": "cancelled",
+        "label": "[30 min idle]"
+      },
+      {
+        "from": "paid",
+        "to": "cancelled",
+        "label": "[no stock]"
+      }
+    ],
+    "size": "sm"
+  }
+}

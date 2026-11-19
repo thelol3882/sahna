@@ -1,0 +1,210 @@
+/* Diagram module. Every colour is a --dg-* token, set per dial style on .dgv[data-dg-style]. Built on the deck
+   tokens (theme.css or a style pack: --color-*), so a brand palette flows through; the showcase scene is a dark
+   scene (.scene.hero) and reads the dark token block. Showcase tone tints (cyan/violet glass) are hand-tuned. Element roles:
+   - outer elements (.dg-n, .dg-g, .dg-e, .dg-l, .dgc-*) carry entrance and layout (opacity/visibility, x/y/scale);
+   - inner elements (.dg-body, .dg-gb, stroke-opacity, .dg-lb) carry focus/dim;
+   - .dg-ring, .dg-hl*, .dg-hop are lit by the scene timeline; .dg-halo, .dg-bm*, live packets only by live loops. */
+
+.dgv { position: absolute; inset: 0; pointer-events: none; }
+.dgv-bg { position: absolute; inset: 0; }
+
+/* ---------------------------------------------------------------- tokens per style */
+.dgv[data-dg-style="academic"] {
+  --dg-node-bg: var(--color-surface);
+  --dg-node-border: 1.5px solid var(--color-line-strong);
+  --dg-node-shadow: none;
+  --dg-radius: 12px;
+  --dg-ink: var(--color-ink);
+  --dg-sub: var(--color-muted);
+  --dg-ic-bg: var(--color-sunken);
+  --dg-ic-fg: var(--color-ink-2);
+  --dg-group-bg: transparent;
+  --dg-group-border: 1.5px dashed var(--color-line-strong);
+  --dg-group-ink: var(--color-muted);
+  --dg-edge: var(--color-muted);
+  --dg-edge-w: 2px;
+  --dg-hl-w: 3.5px;
+  --dg-label-bg: var(--color-canvas);
+  --dg-label-ink: var(--color-ink-2);
+  --dg-flow-primary: var(--color-primary);
+  --dg-flow-accent: color-mix(in oklab, var(--color-accent) 75%, var(--color-ink));
+  --dg-flow-danger: var(--color-danger);
+  --dg-flow-success: var(--color-success);
+  --dg-ring-w: 2.5px;
+  --dg-ring-glow: 0px;
+  --dg-panel-bg: var(--color-surface);
+  --dg-panel-border: 1.5px solid var(--color-line-strong);
+  --dg-seq-line: var(--color-line-strong);
+  --dg-seq-ink: var(--color-ink-2);
+}
+.dgv[data-dg-style="balanced"] {
+  --dg-node-bg: var(--color-surface);
+  --dg-node-border: 1px solid var(--color-line);
+  --dg-node-shadow: var(--shadow-sm);
+  --dg-radius: 18px;
+  --dg-ink: var(--color-ink);
+  --dg-sub: var(--color-muted);
+  --dg-ic-bg: var(--color-primary-soft);
+  --dg-ic-fg: var(--color-primary-ink);
+  --dg-group-bg: color-mix(in srgb, var(--color-sunken) 45%, transparent);
+  --dg-group-border: 1.5px solid var(--color-line);
+  --dg-group-ink: var(--color-muted);
+  --dg-edge: var(--color-line-strong);
+  --dg-edge-w: 3px;
+  --dg-hl-w: 4px;
+  --dg-label-bg: var(--color-canvas);
+  --dg-label-ink: var(--color-ink-2);
+  --dg-flow-primary: var(--color-primary);
+  --dg-flow-accent: var(--color-accent);
+  --dg-flow-danger: var(--color-danger);
+  --dg-flow-success: var(--color-success);
+  --dg-ring-w: 3px;
+  --dg-ring-glow: 22px;
+  --dg-panel-bg: var(--color-surface);
+  --dg-panel-border: 1.5px solid var(--color-line);
+  --dg-seq-line: var(--color-line-strong);
+  --dg-seq-ink: var(--color-ink-2);
+}
+.dgv[data-dg-style="showcase"] {
+  --dg-node-bg: linear-gradient(180deg, rgb(255 255 255 / 0.085), rgb(255 255 255 / 0.03));
+  --dg-node-border: 1px solid rgb(255 255 255 / 0.13);
+  --dg-node-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 10px 30px rgb(0 0 0 / 0.35);
+  --dg-radius: 18px;
+  --dg-ink: var(--color-ink);
+  --dg-sub: var(--color-muted);
+  --dg-ic-bg: rgb(255 255 255 / 0.08);
+  --dg-ic-fg: var(--color-ink-2);
+  --dg-group-bg: rgb(255 255 255 / 0.025);
+  --dg-group-border: 1px solid rgb(255 255 255 / 0.09);
+  --dg-group-ink: var(--color-muted);
+  --dg-edge: rgb(255 255 255 / 0.2);
+  --dg-edge-w: 2.5px;
+  --dg-hl-w: 3.5px;
+  --dg-label-bg: var(--color-canvas);
+  --dg-label-ink: var(--color-ink-2);
+  --dg-flow-primary: color-mix(in oklab, var(--color-primary) 55%, #5CE1FF);
+  --dg-flow-accent: var(--color-accent);
+  --dg-flow-danger: var(--color-danger);
+  --dg-flow-success: var(--color-success);
+  --dg-ring-w: 2px;
+  --dg-ring-glow: 34px;
+  --dg-panel-bg: linear-gradient(180deg, var(--color-surface), var(--color-sunken));
+  --dg-panel-border: 1px solid rgb(255 255 255 / 0.12);
+  --dg-seq-line: rgb(255 255 255 / 0.22);
+  --dg-seq-ink: var(--color-ink-2);
+}
+/* dark canvas with a dot grid and a soft glow under the diagram (showcase only) */
+.dgv[data-dg-style="showcase"] .dgv-bg {
+  background:
+    radial-gradient(ellipse 60% 55% at 50% 58%, color-mix(in srgb, var(--dg-flow-primary) 8%, transparent), transparent 70%),
+    radial-gradient(rgb(255 255 255 / 0.085) 1.2px, transparent 1.6px) 0 0 / 30px 30px,
+    var(--color-canvas);
+}
+
+/* ---------------------------------------------------------------- nodes */
+.dgx { position: absolute; transform-origin: 0 0; }
+.dg-n { position: absolute; }
+.dg-body { position: absolute; inset: 0; }
+.dg-card {
+  position: absolute; inset: 0; display: flex; align-items: center; overflow: hidden;
+  border-radius: var(--dg-radius); background: var(--t-bg, var(--dg-node-bg)); border: var(--t-border, var(--dg-node-border));
+  box-shadow: var(--t-shadow, var(--dg-node-shadow)); color: var(--t-ink, var(--dg-ink));
+}
+.dg-txt { display: flex; flex-direction: column; min-width: 0; flex: 1; overflow: hidden; }
+.dg-title { font-weight: 700; line-height: 1.15; white-space: nowrap; letter-spacing: -0.01em; }
+.dg-sub { line-height: 1.3; white-space: nowrap; color: var(--t-sub, var(--dg-sub)); }
+.dg-ic { display: inline-grid; place-items: center; flex: none; border-radius: 10px; background: var(--t-ic-bg, var(--dg-ic-bg)); color: var(--t-ic-fg, var(--dg-ic-fg)); }
+.dg-ic-brand { background: #FFFFFF; box-shadow: 0 0 0 1px rgb(20 24 34 / 0.1); }
+.dg-badge {
+  position: absolute; left: -12px; top: -12px; width: 32px; height: 32px; border-radius: 999px; display: grid; place-items: center;
+  font: 700 18px var(--font-mono); background: var(--dg-flow-primary); color: #fff; z-index: 2;
+}
+.dgv[data-dg-style="showcase"] .dg-badge { color: #06121A; }
+.dg-ring {
+  position: absolute; inset: -6px; border-radius: calc(var(--dg-radius) + 6px); opacity: 0; visibility: hidden;
+  border: var(--dg-ring-w) solid var(--rc, var(--dg-flow-primary));
+  box-shadow: 0 0 var(--dg-ring-glow) color-mix(in srgb, var(--rc, var(--dg-flow-primary)) 45%, transparent);
+}
+.dg-halo { will-change: opacity, transform;
+  position: absolute; inset: -4px; border-radius: calc(var(--dg-radius) + 4px); opacity: 0;
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--hc, var(--dg-flow-primary)) 22%, transparent), 0 0 40px 6px color-mix(in srgb, var(--hc, var(--dg-flow-primary)) 40%, transparent);
+}
+.dg-alarm { position: absolute; inset: 0; border-radius: var(--dg-radius); opacity: 0; visibility: hidden; pointer-events: none;
+  background: color-mix(in srgb, var(--dg-flow-danger) 14%, transparent); border: 2.5px solid var(--dg-flow-danger); }
+
+/* tones: light styles */
+[data-tone="core"] { --t-bg: var(--color-primary); --t-ink: var(--color-on-primary); --t-sub: rgb(255 255 255 / 0.78); --t-border: 1px solid transparent; --t-ic-bg: rgb(255 255 255 / 0.16); --t-ic-fg: #fff; }
+.dgv[data-dg-style="academic"] [data-tone="core"] { --t-bg: var(--color-ink); --t-ink: var(--color-canvas); }
+[data-tone="entry"] { --t-bg: var(--color-primary-soft); --t-border: 1px solid color-mix(in srgb, var(--color-primary) 22%, transparent); --t-sub: var(--color-primary-ink); --t-ic-bg: #fff; }
+[data-tone="store"] { --t-bg: var(--color-sunken); --t-border: 1px solid var(--color-line-strong); --t-shadow: none; --t-ic-bg: #fff; }
+[data-tone="queue"] { --t-bg: var(--color-accent-soft); --t-border: 1.5px solid color-mix(in srgb, var(--color-accent) 55%, transparent); --t-ic-bg: #fff; --t-ic-fg: #9A5A0E; }
+[data-tone="external"] { --t-border: 2px dashed var(--color-line-strong); --t-shadow: none; }
+[data-tone="hot"] { --t-bg: var(--color-accent-soft); --t-border: 2px solid color-mix(in srgb, var(--color-accent) 70%, transparent); --t-sub: #9A5A0E; --t-ic-bg: #fff; --t-ic-fg: #9A5A0E; }
+[data-tone="later"] { --t-border: 2.5px dashed var(--color-line-strong); --t-shadow: none; }
+[data-tone="later"] .dg-card { opacity: 0.82; }
+[data-tone="danger"] { --t-bg: #FDECEE; --t-border: 1.5px solid color-mix(in srgb, var(--color-danger) 50%, transparent); --t-ic-bg: #fff; --t-ic-fg: var(--color-danger); }
+[data-tone="ghost"] { --t-bg: transparent; --t-border: 1.5px dashed var(--color-line-strong); --t-shadow: none; --t-ink: var(--color-ink-2); }
+
+/* tones: showcase (dark glass) */
+.dgv[data-dg-style="showcase"] [data-tone="core"] { --t-bg: linear-gradient(160deg, rgb(92 225 255 / 0.2), rgb(124 92 255 / 0.18)); --t-ink: #fff; --t-sub: #C9D6F0; --t-border: 1px solid rgb(140 200 255 / 0.45); --t-shadow: inset 0 1px 0 rgb(255 255 255 / 0.15), 0 0 40px rgb(92 225 255 / 0.12); --t-ic-bg: rgb(255 255 255 / 0.12); --t-ic-fg: #fff; }
+.dgv[data-dg-style="showcase"] [data-tone="entry"] { --t-bg: linear-gradient(180deg, rgb(92 225 255 / 0.1), rgb(92 225 255 / 0.03)); --t-border: 1px solid rgb(92 225 255 / 0.25); --t-sub: #8FD9EC; --t-ic-bg: rgb(255 255 255 / 0.08); }
+.dgv[data-dg-style="showcase"] [data-tone="store"] { --t-bg: rgb(255 255 255 / 0.04); --t-border: 1px solid rgb(255 255 255 / 0.16); --t-ic-bg: rgb(255 255 255 / 0.08); }
+.dgv[data-dg-style="showcase"] [data-tone="queue"],
+.dgv[data-dg-style="showcase"] [data-tone="hot"] { --t-bg: linear-gradient(180deg, rgb(255 181 71 / 0.14), rgb(255 181 71 / 0.04)); --t-border: 1px solid rgb(255 181 71 / 0.4); --t-sub: #E8B877; --t-ic-bg: rgb(255 255 255 / 0.08); --t-ic-fg: #FFC977; }
+.dgv[data-dg-style="showcase"] [data-tone="external"] { --t-border: 1.5px dashed rgb(255 255 255 / 0.24); --t-bg: rgb(255 255 255 / 0.02); }
+.dgv[data-dg-style="showcase"] [data-tone="later"] { --t-border: 2px dashed rgb(255 255 255 / 0.22); --t-bg: transparent; }
+.dgv[data-dg-style="showcase"] [data-tone="danger"] { --t-bg: rgb(255 92 108 / 0.1); --t-border: 1px solid rgb(255 92 108 / 0.45); --t-ic-bg: rgb(255 255 255 / 0.08); --t-ic-fg: #FF8A96; }
+.dgv[data-dg-style="showcase"] [data-tone="ghost"] { --t-bg: transparent; --t-border: 1.5px dashed rgb(255 255 255 / 0.2); --t-ink: #C9D1E0; }
+
+/* ---------------------------------------------------------------- groups, edges, labels */
+.dg-g { position: absolute; }
+.dg-gb { position: absolute; inset: 0; border-radius: 22px; background: var(--dg-group-bg); border: var(--dg-group-border); }
+.dg-gt { position: absolute; left: 18px; top: 14px; font: 500 21px var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--dg-group-ink); white-space: nowrap; }
+.dg-svg { position: absolute; left: 0; top: 0; overflow: visible; }
+.dg-e { fill: none; stroke: var(--dg-edge); stroke-width: var(--dg-edge-w); stroke-linecap: round; }
+.dg-e.hot { stroke: color-mix(in srgb, var(--dg-flow-accent) 70%, var(--dg-edge)); }
+.dg-e.dashed { stroke-dasharray: 9 9; }
+.dg-ah { fill: var(--dg-edge); }
+.dg-ah.hot { fill: color-mix(in srgb, var(--dg-flow-accent) 70%, var(--dg-edge)); }
+.dg-hl { fill: none; stroke-width: var(--dg-hl-w); stroke-linecap: round; opacity: 0; }
+.dg-hlw { fill: none; stroke-width: 14px; stroke-linecap: round; opacity: 0; }
+.dg-bm { fill: none; stroke-width: 5px; stroke-linecap: round; opacity: 0; }
+.dg-bmw { fill: none; stroke-width: 16px; stroke-linecap: round; opacity: 0; }
+.dg-l { position: absolute; display: flex; align-items: center; justify-content: center; }
+.dg-lb { padding: 0 10px; height: 32px; display: flex; align-items: center; border-radius: 8px; font: 500 19px var(--font-mono); white-space: nowrap; background: var(--dg-label-bg); color: var(--dg-label-ink); }
+.dg-hop {
+  position: absolute; min-width: 32px; height: 32px; padding: 0 7px; box-sizing: border-box; transform: translate(-50%, -50%); border-radius: 999px; display: grid; place-items: center; white-space: nowrap;
+  font: 700 18px var(--font-mono); color: #fff; background: var(--rc, var(--dg-flow-primary)); opacity: 0; visibility: hidden; z-index: 3;
+  box-shadow: 0 0 0 3px var(--dg-label-bg);
+}
+.dgv[data-dg-style="showcase"] .dg-hop { color: #06121A; }
+
+/* ---------------------------------------------------------------- zoom panels */
+.dgc { position: absolute; inset: 0; }
+.dgp { position: absolute; overflow: hidden; background: var(--dg-panel-bg); border: var(--dg-panel-border); box-shadow: var(--shadow-lg); }
+.dgp-cover { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 16px; font-size: 30px; font-weight: 700;
+  background: var(--t-bg, var(--dg-node-bg)); color: var(--t-ink, var(--dg-ink)); }
+.dgp-head { position: absolute; left: 56px; top: 30px; display: flex; flex-direction: column; gap: 6px; }
+.dgp-eyebrow { font: 500 20px var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--dg-flow-primary); }
+.dgp-title { font-size: 44px; font-weight: 700; letter-spacing: -0.025em; color: var(--dg-ink); white-space: nowrap; }
+
+/* ---------------------------------------------------------------- sequence view */
+.dg-seq { opacity: 1; }
+.dg-sl { stroke: var(--dg-seq-line); stroke-width: 2px; stroke-dasharray: 6 8; fill: none; }
+.dg-sm { stroke: var(--dg-seq-ink); stroke-width: 2.5px; fill: none; }
+.dg-sm.reply { stroke-dasharray: 8 7; }
+.dg-sm.async { stroke: var(--dg-flow-accent); stroke-dasharray: 3 7; stroke-linecap: round; }
+.dg-sa { fill: var(--dg-seq-ink); }
+.dg-sa.async { fill: var(--dg-flow-accent); }
+.dg-sn { display: inline-grid; place-items: center; width: 28px; height: 28px; margin-right: 10px; border-radius: 999px; font-size: 20px; font-weight: 700; color: #fff; background: var(--dg-flow-primary); vertical-align: middle; }
+.dgv[data-dg-style="showcase"] .dg-sn { color: #06121A; }
+.dg-gs, .dg-ls, .dg-hops { position: absolute; inset: 0; }
+.dg-st { position: absolute; transform: translate(-50%, -100%); margin-top: -6px; font: 500 19px var(--font-mono); white-space: nowrap; color: var(--dg-seq-ink); padding: 2px 10px 2px 4px; border-radius: 999px; background: var(--dg-label-bg); }
+
+/* live caption chip (optional, used by scenes) */
+.dg-live { display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; padding: 4px 14px; font: 500 18px var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase;
+  background: color-mix(in srgb, var(--dg-flow-accent) 16%, transparent); color: color-mix(in oklab, var(--dg-flow-accent) 45%, var(--dg-ink)); white-space: nowrap; }
+.dg-live i { width: 9px; height: 9px; border-radius: 999px; background: currentColor; animation: dg-blink 1.2s ease-in-out infinite; }
+@keyframes dg-blink { 50% { opacity: 0.25; } }
+.export-mode .dg-live i { animation: none; }
+@media (prefers-reduced-motion: reduce) { .dg-live i { animation: none; } }

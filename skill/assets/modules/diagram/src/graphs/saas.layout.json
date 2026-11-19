@@ -1,0 +1,2391 @@
+{
+ "$generated": "by scripts/layout.mjs from saas.graph.json — do not edit",
+ "metrics": {
+  "lg": {
+   "title": 26,
+   "sub": 20,
+   "icon": 52,
+   "pad": 22,
+   "gap": 16
+  },
+  "sm": {
+   "title": 22,
+   "sub": 20,
+   "icon": 40,
+   "pad": 16,
+   "gap": 12
+  }
+ },
+ "graphs": {
+  "context": {
+   "title": "Acme Shop · system context",
+   "direction": "RIGHT",
+   "width": 1577,
+   "height": 276,
+   "nodes": [
+    {
+     "id": "customer",
+     "title": "Customer",
+     "sub": "web and mobile",
+     "icon": "user",
+     "tone": "entry",
+     "size": "lg",
+     "attach": "customer",
+     "x": 12,
+     "y": 12,
+     "w": 300,
+     "h": 104
+    },
+    {
+     "id": "admin",
+     "title": "Store admin",
+     "sub": "back office",
+     "icon": "user-cog",
+     "tone": "entry",
+     "size": "lg",
+     "attach": "admin",
+     "x": 12,
+     "y": 160,
+     "w": 300,
+     "h": 104
+    },
+    {
+     "id": "shop",
+     "title": "Acme Shop",
+     "sub": "the system we build",
+     "icon": "store",
+     "tone": "core",
+     "w": 360,
+     "h": 150,
+     "inside": "system",
+     "size": "lg",
+     "attach": "shop",
+     "x": 609,
+     "y": 14
+    },
+    {
+     "id": "pay",
+     "title": "Stripe",
+     "sub": "card payments",
+     "icon": "stripe",
+     "tone": "external",
+     "size": "lg",
+     "attach": "pay",
+     "x": 1257,
+     "y": 12,
+     "w": 300,
+     "h": 104
+    },
+    {
+     "id": "mail",
+     "title": "Mailgun",
+     "sub": "transactional email",
+     "icon": "mailgun",
+     "tone": "external",
+     "size": "lg",
+     "attach": "mail",
+     "x": 1257,
+     "y": 160,
+     "w": 308,
+     "h": 104
+    }
+   ],
+   "groups": [],
+   "edges": [
+    {
+     "from": "customer",
+     "to": "shop",
+     "label": "orders",
+     "id": "customer-shop",
+     "points": [
+      [
+       312,
+       64
+      ],
+      [
+       609,
+       64
+      ]
+     ],
+     "labelBox": {
+      "x": 420,
+      "y": 25,
+      "w": 82,
+      "h": 32
+     }
+    },
+    {
+     "from": "admin",
+     "to": "shop",
+     "label": "manages",
+     "id": "admin-shop",
+     "points": [
+      [
+       312,
+       212
+      ],
+      [
+       338,
+       212
+      ],
+      [
+       338,
+       114
+      ],
+      [
+       609,
+       114
+      ]
+     ],
+     "labelBox": {
+      "x": 408,
+      "y": 121,
+      "w": 105,
+      "h": 32
+     }
+    },
+    {
+     "from": "shop",
+     "to": "pay",
+     "label": "charges",
+     "id": "shop-pay",
+     "points": [
+      [
+       969,
+       64
+      ],
+      [
+       1257,
+       64
+      ]
+     ],
+     "labelBox": {
+      "x": 1065,
+      "y": 25,
+      "w": 96,
+      "h": 32
+     }
+    },
+    {
+     "from": "shop",
+     "to": "mail",
+     "label": "sends",
+     "id": "shop-mail",
+     "points": [
+      [
+       969,
+       114
+      ],
+      [
+       1187,
+       114
+      ],
+      [
+       1187,
+       212
+      ],
+      [
+       1257,
+       212
+      ]
+     ],
+     "labelBox": {
+      "x": 1074,
+      "y": 121,
+      "w": 78,
+      "h": 32
+     }
+    }
+   ],
+   "flows": {}
+  },
+  "system": {
+   "title": "Acme Shop · containers",
+   "direction": "RIGHT",
+   "width": 1682,
+   "height": 656,
+   "nodes": [
+    {
+     "id": "web",
+     "title": "Web app",
+     "sub": "React SPA",
+     "icon": "react",
+     "tone": "entry",
+     "group": "clients",
+     "size": "sm",
+     "attach": "web",
+     "x": 30,
+     "y": 82,
+     "w": 230,
+     "h": 84
+    },
+    {
+     "id": "mobile",
+     "title": "Mobile app",
+     "sub": "iOS · Android",
+     "icon": "smartphone",
+     "tone": "entry",
+     "group": "clients",
+     "size": "sm",
+     "attach": "mobile",
+     "x": 30,
+     "y": 186,
+     "w": 230,
+     "h": 84
+    },
+    {
+     "id": "gw",
+     "title": "API gateway",
+     "sub": "auth · rate limits",
+     "icon": "nginx",
+     "tone": "core",
+     "size": "sm",
+     "attach": "gw",
+     "x": 367,
+     "y": 172,
+     "w": 252,
+     "h": 84
+    },
+    {
+     "id": "auth",
+     "title": "Auth",
+     "sub": "JWT · sessions",
+     "icon": "key",
+     "group": "services",
+     "tone": "default",
+     "size": "sm",
+     "attach": "auth",
+     "x": 726,
+     "y": 68,
+     "w": 243,
+     "h": 84
+    },
+    {
+     "id": "orders",
+     "title": "Orders",
+     "sub": "Go service",
+     "icon": "go",
+     "group": "services",
+     "inside": "orders",
+     "tone": "default",
+     "size": "sm",
+     "attach": "orders",
+     "x": 733,
+     "y": 172,
+     "w": 230,
+     "h": 84
+    },
+    {
+     "id": "billing",
+     "title": "Billing",
+     "sub": "Go service",
+     "icon": "credit-card",
+     "group": "services",
+     "tone": "default",
+     "size": "sm",
+     "attach": "billing",
+     "x": 735,
+     "y": 276,
+     "w": 230,
+     "h": 84
+    },
+    {
+     "id": "redis",
+     "title": "Redis",
+     "sub": "sessions · cache",
+     "icon": "redis",
+     "tone": "store",
+     "size": "sm",
+     "attach": "redis",
+     "x": 1076,
+     "y": 44,
+     "w": 254,
+     "h": 84
+    },
+    {
+     "id": "pg",
+     "title": "PostgreSQL",
+     "sub": "orders · tenants",
+     "icon": "postgres",
+     "tone": "store",
+     "size": "sm",
+     "attach": "pg",
+     "x": 1076,
+     "y": 172,
+     "w": 244,
+     "h": 84
+    },
+    {
+     "id": "queue",
+     "title": "Queue",
+     "sub": "RabbitMQ",
+     "icon": "rabbitmq",
+     "tone": "queue",
+     "size": "sm",
+     "attach": "queue",
+     "x": 1088,
+     "y": 428,
+     "w": 230,
+     "h": 84
+    },
+    {
+     "id": "worker",
+     "title": "Worker",
+     "sub": "emails · invoices",
+     "icon": "cog",
+     "tone": "default",
+     "size": "sm",
+     "attach": "worker",
+     "x": 1414,
+     "y": 428,
+     "w": 256,
+     "h": 84
+    },
+    {
+     "id": "stripe",
+     "title": "Stripe",
+     "sub": "payments",
+     "icon": "stripe",
+     "tone": "external",
+     "size": "sm",
+     "attach": "stripe",
+     "x": 1076,
+     "y": 300,
+     "w": 230,
+     "h": 84
+    },
+    {
+     "id": "email",
+     "title": "Mailgun",
+     "sub": "email API",
+     "icon": "mailgun",
+     "tone": "external",
+     "size": "sm",
+     "attach": "email",
+     "x": 1427,
+     "y": 560,
+     "w": 230,
+     "h": 84
+    },
+    {
+     "id": "s3",
+     "title": "S3 bucket",
+     "sub": "invoice PDFs",
+     "icon": "bucket",
+     "tone": "store",
+     "size": "sm",
+     "attach": "s3",
+     "x": 1427,
+     "y": 296,
+     "w": 230,
+     "h": 84
+    }
+   ],
+   "groups": [
+    {
+     "id": "clients",
+     "title": "Clients",
+     "layout": "free",
+     "members": [
+      "web",
+      "mobile"
+     ],
+     "x": 12,
+     "y": 26,
+     "w": 266,
+     "h": 262
+    },
+    {
+     "id": "services",
+     "title": "Services",
+     "layout": "free",
+     "members": [
+      "auth",
+      "orders",
+      "billing"
+     ],
+     "x": 708,
+     "y": 12,
+     "w": 279,
+     "h": 366
+    }
+   ],
+   "edges": [
+    {
+     "from": "web",
+     "to": "gw",
+     "id": "web-gw",
+     "points": [
+      [
+       260,
+       124
+      ],
+      [
+       309,
+       124
+      ],
+      [
+       309,
+       200
+      ],
+      [
+       367,
+       200
+      ]
+     ]
+    },
+    {
+     "from": "mobile",
+     "to": "gw",
+     "id": "mobile-gw",
+     "points": [
+      [
+       260,
+       228
+      ],
+      [
+       367,
+       228
+      ]
+     ]
+    },
+    {
+     "from": "gw",
+     "to": "auth",
+     "id": "gw-auth",
+     "points": [
+      [
+       619,
+       193
+      ],
+      [
+       645,
+       193
+      ],
+      [
+       645,
+       110
+      ],
+      [
+       726,
+       110
+      ]
+     ]
+    },
+    {
+     "from": "gw",
+     "to": "orders",
+     "id": "gw-orders",
+     "points": [
+      [
+       619,
+       214
+      ],
+      [
+       733,
+       214
+      ]
+     ]
+    },
+    {
+     "from": "gw",
+     "to": "billing",
+     "id": "gw-billing",
+     "points": [
+      [
+       619,
+       235
+      ],
+      [
+       645,
+       235
+      ],
+      [
+       645,
+       318
+      ],
+      [
+       735,
+       318
+      ]
+     ]
+    },
+    {
+     "from": "auth",
+     "to": "redis",
+     "id": "auth-redis",
+     "points": [
+      [
+       969,
+       110
+      ],
+      [
+       1018,
+       110
+      ],
+      [
+       1018,
+       86
+      ],
+      [
+       1076,
+       86
+      ]
+     ]
+    },
+    {
+     "from": "orders",
+     "to": "pg",
+     "id": "orders-pg",
+     "points": [
+      [
+       963,
+       214
+      ],
+      [
+       1076,
+       214
+      ]
+     ]
+    },
+    {
+     "from": "billing",
+     "to": "stripe",
+     "both": true,
+     "id": "billing-stripe",
+     "points": [
+      [
+       965,
+       304
+      ],
+      [
+       1028,
+       304
+      ],
+      [
+       1028,
+       342
+      ],
+      [
+       1076,
+       342
+      ]
+     ]
+    },
+    {
+     "from": "billing",
+     "to": "queue",
+     "hot": true,
+     "id": "billing-queue",
+     "points": [
+      [
+       965,
+       332
+      ],
+      [
+       1018,
+       332
+      ],
+      [
+       1018,
+       470
+      ],
+      [
+       1088,
+       470
+      ]
+     ]
+    },
+    {
+     "from": "queue",
+     "to": "worker",
+     "hot": true,
+     "id": "queue-worker",
+     "points": [
+      [
+       1318,
+       470
+      ],
+      [
+       1414,
+       470
+      ]
+     ]
+    },
+    {
+     "from": "worker",
+     "to": "email",
+     "hot": true,
+     "id": "worker-email",
+     "points": [
+      [
+       1542,
+       512
+      ],
+      [
+       1542,
+       560
+      ]
+     ]
+    },
+    {
+     "from": "worker",
+     "to": "s3",
+     "id": "worker-s3",
+     "points": [
+      [
+       1542,
+       428
+      ],
+      [
+       1542,
+       380
+      ]
+     ]
+    }
+   ],
+   "flows": {
+    "checkout": {
+     "title": "Checkout",
+     "start": "web",
+     "hops": [
+      {
+       "from": "web",
+       "to": "gw",
+       "edge": "web-gw",
+       "rev": false,
+       "label": "POST /orders"
+      },
+      {
+       "from": "gw",
+       "to": "auth",
+       "edge": "gw-auth",
+       "rev": false,
+       "label": "verify JWT"
+      },
+      {
+       "from": "auth",
+       "to": "gw",
+       "edge": "gw-auth",
+       "rev": true,
+       "label": "ok",
+       "reply": true
+      },
+      {
+       "from": "gw",
+       "to": "orders",
+       "edge": "gw-orders",
+       "rev": false,
+       "label": "create"
+      },
+      {
+       "from": "orders",
+       "to": "pg",
+       "edge": "orders-pg",
+       "rev": false,
+       "label": "INSERT order"
+      },
+      {
+       "from": "pg",
+       "to": "orders",
+       "edge": "orders-pg",
+       "rev": true,
+       "label": "id 1042",
+       "reply": true
+      },
+      {
+       "from": "orders",
+       "to": "gw",
+       "edge": "gw-orders",
+       "rev": true,
+       "label": "201",
+       "reply": true
+      },
+      {
+       "from": "gw",
+       "to": "web",
+       "edge": "web-gw",
+       "rev": true,
+       "label": "201 Created",
+       "reply": true
+      }
+     ]
+    },
+    "paid": {
+     "title": "Payment, then async email",
+     "color": "accent",
+     "start": "web",
+     "hops": [
+      {
+       "from": "web",
+       "to": "gw",
+       "edge": "web-gw",
+       "rev": false,
+       "label": "POST /pay"
+      },
+      {
+       "from": "gw",
+       "to": "billing",
+       "edge": "gw-billing",
+       "rev": false,
+       "label": "charge"
+      },
+      {
+       "from": "billing",
+       "to": "stripe",
+       "edge": "billing-stripe",
+       "rev": false,
+       "label": "PaymentIntent"
+      },
+      {
+       "from": "stripe",
+       "to": "billing",
+       "edge": "billing-stripe",
+       "rev": true,
+       "label": "succeeded",
+       "reply": true
+      },
+      {
+       "from": "billing",
+       "to": "queue",
+       "edge": "billing-queue",
+       "rev": false,
+       "label": "order.paid",
+       "async": true
+      },
+      {
+       "from": "queue",
+       "to": "worker",
+       "edge": "queue-worker",
+       "rev": false,
+       "label": "consume"
+      },
+      {
+       "from": "worker",
+       "to": "email",
+       "edge": "worker-email",
+       "rev": false,
+       "label": "receipt"
+      },
+      {
+       "from": "worker",
+       "to": "s3",
+       "edge": "worker-s3",
+       "rev": false,
+       "label": "invoice.pdf",
+       "with": true
+      }
+     ]
+    },
+    "tenant-a": {
+     "title": "Tenant A",
+     "start": "web",
+     "hops": [
+      {
+       "from": "web",
+       "to": "gw",
+       "edge": "web-gw",
+       "rev": false
+      },
+      {
+       "from": "gw",
+       "to": "orders",
+       "edge": "gw-orders",
+       "rev": false
+      },
+      {
+       "from": "orders",
+       "to": "pg",
+       "edge": "orders-pg",
+       "rev": false,
+       "label": "SELECT orders"
+      },
+      {
+       "from": "pg",
+       "to": "orders",
+       "edge": "orders-pg",
+       "rev": true,
+       "reply": true
+      },
+      {
+       "from": "orders",
+       "to": "gw",
+       "edge": "gw-orders",
+       "rev": true,
+       "reply": true
+      },
+      {
+       "from": "gw",
+       "to": "web",
+       "edge": "web-gw",
+       "rev": true,
+       "reply": true
+      }
+     ]
+    },
+    "tenant-b": {
+     "title": "Tenant B",
+     "start": "mobile",
+     "hops": [
+      {
+       "from": "mobile",
+       "to": "gw",
+       "edge": "mobile-gw",
+       "rev": false
+      },
+      {
+       "from": "gw",
+       "to": "orders",
+       "edge": "gw-orders",
+       "rev": false
+      },
+      {
+       "from": "orders",
+       "to": "pg",
+       "edge": "orders-pg",
+       "rev": false,
+       "label": "SELECT orders"
+      },
+      {
+       "from": "pg",
+       "to": "orders",
+       "edge": "orders-pg",
+       "rev": true,
+       "reply": true
+      },
+      {
+       "from": "orders",
+       "to": "gw",
+       "edge": "gw-orders",
+       "rev": true,
+       "reply": true
+      },
+      {
+       "from": "gw",
+       "to": "mobile",
+       "edge": "mobile-gw",
+       "rev": true,
+       "reply": true
+      }
+     ]
+    },
+    "email": {
+     "title": "Email delivery",
+     "start": "billing",
+     "hops": [
+      {
+       "from": "billing",
+       "to": "queue",
+       "edge": "billing-queue",
+       "rev": false,
+       "async": true
+      },
+      {
+       "from": "queue",
+       "to": "worker",
+       "edge": "queue-worker",
+       "rev": false
+      },
+      {
+       "from": "worker",
+       "to": "email",
+       "edge": "worker-email",
+       "rev": false
+      }
+     ]
+    }
+   }
+  },
+  "orders": {
+   "title": "Orders service · components",
+   "direction": "RIGHT",
+   "width": 1070,
+   "height": 642,
+   "nodes": [
+    {
+     "id": "o-http",
+     "title": "HTTP handler",
+     "sub": "chi router",
+     "icon": "route",
+     "tone": "entry",
+     "size": "lg",
+     "attach": "o-http",
+     "x": 12,
+     "y": 131,
+     "w": 306,
+     "h": 104
+    },
+    {
+     "id": "o-valid",
+     "title": "Validator",
+     "sub": "schema · limits",
+     "icon": "shield-check",
+     "group": "core",
+     "tone": "default",
+     "size": "sm",
+     "attach": "core",
+     "x": 416,
+     "y": 68,
+     "w": 244,
+     "h": 80
+    },
+    {
+     "id": "o-svc",
+     "title": "Order service",
+     "sub": "domain rules",
+     "icon": "box",
+     "group": "core",
+     "tone": "default",
+     "size": "sm",
+     "attach": "core",
+     "x": 416,
+     "y": 162,
+     "w": 244,
+     "h": 80
+    },
+    {
+     "id": "o-repo",
+     "title": "Repository",
+     "sub": "one transaction",
+     "icon": "database",
+     "group": "core",
+     "tone": "default",
+     "size": "sm",
+     "attach": "core",
+     "x": 416,
+     "y": 256,
+     "w": 244,
+     "h": 80
+    },
+    {
+     "id": "o-outbox",
+     "title": "Outbox",
+     "sub": "same transaction",
+     "icon": "inbox",
+     "tone": "hot",
+     "size": "lg",
+     "attach": "o-outbox",
+     "x": 758,
+     "y": 222,
+     "w": 300,
+     "h": 104
+    },
+    {
+     "id": "o-relay",
+     "title": "Outbox relay",
+     "sub": "polls · publishes",
+     "icon": "send",
+     "tone": "default",
+     "size": "lg",
+     "attach": "o-relay",
+     "x": 758,
+     "y": 374,
+     "w": 300,
+     "h": 104
+    },
+    {
+     "id": "o-pg",
+     "title": "PostgreSQL",
+     "sub": "orders table",
+     "icon": "postgres",
+     "tone": "ghost",
+     "size": "lg",
+     "attach": "o-pg",
+     "x": 758,
+     "y": 74,
+     "w": 300,
+     "h": 104
+    },
+    {
+     "id": "o-queue",
+     "title": "Queue",
+     "sub": "order.paid",
+     "icon": "rabbitmq",
+     "tone": "ghost",
+     "size": "lg",
+     "attach": "o-queue",
+     "x": 758,
+     "y": 526,
+     "w": 300,
+     "h": 104
+    }
+   ],
+   "groups": [
+    {
+     "id": "core",
+     "title": "Inside one request",
+     "layout": "column",
+     "members": [
+      "o-valid",
+      "o-svc",
+      "o-repo"
+     ],
+     "x": 398,
+     "y": 12,
+     "w": 280,
+     "h": 342
+    }
+   ],
+   "edges": [
+    {
+     "from": "o-http",
+     "to": "core",
+     "id": "o-http-core",
+     "points": [
+      [
+       318,
+       183
+      ],
+      [
+       398,
+       183
+      ]
+     ]
+    },
+    {
+     "id": "core-pg",
+     "from": "core",
+     "to": "o-pg",
+     "points": [
+      [
+       678,
+       126
+      ],
+      [
+       758,
+       126
+      ]
+     ]
+    },
+    {
+     "id": "core-outbox",
+     "from": "core",
+     "to": "o-outbox",
+     "hot": true,
+     "points": [
+      [
+       678,
+       240
+      ],
+      [
+       704,
+       240
+      ],
+      [
+       704,
+       274
+      ],
+      [
+       758,
+       274
+      ]
+     ]
+    },
+    {
+     "from": "o-outbox",
+     "to": "o-relay",
+     "hot": true,
+     "id": "o-outbox-o-relay",
+     "points": [
+      [
+       908,
+       326
+      ],
+      [
+       908,
+       374
+      ]
+     ]
+    },
+    {
+     "from": "o-relay",
+     "to": "o-queue",
+     "hot": true,
+     "id": "o-relay-o-queue",
+     "points": [
+      [
+       908,
+       478
+      ],
+      [
+       908,
+       526
+      ]
+     ]
+    }
+   ],
+   "flows": {
+    "request": {
+     "title": "One request",
+     "start": "o-http",
+     "hops": [
+      {
+       "from": "o-http",
+       "to": "core",
+       "edge": "o-http-core",
+       "rev": false,
+       "light": [
+        "o-valid",
+        "o-svc",
+        "o-repo"
+       ]
+      },
+      {
+       "from": "core",
+       "to": "o-pg",
+       "edge": "core-pg",
+       "rev": false
+      },
+      {
+       "from": "o-pg",
+       "to": "core",
+       "edge": "core-pg",
+       "rev": true,
+       "reply": true
+      },
+      {
+       "from": "core",
+       "to": "o-outbox",
+       "edge": "core-outbox",
+       "rev": false
+      },
+      {
+       "from": "o-outbox",
+       "to": "o-relay",
+       "edge": "o-outbox-o-relay",
+       "rev": false
+      },
+      {
+       "from": "o-relay",
+       "to": "o-queue",
+       "edge": "o-relay-o-queue",
+       "rev": false
+      }
+     ]
+    }
+   }
+  },
+  "tenancy": {
+   "title": "Two tenants, one database",
+   "direction": "RIGHT",
+   "width": 1277,
+   "height": 236,
+   "nodes": [
+    {
+     "id": "ta",
+     "title": "Acme Coffee",
+     "sub": "tenant A · web",
+     "icon": "store",
+     "tone": "entry",
+     "size": "sm",
+     "attach": "ta",
+     "x": 29,
+     "y": 12,
+     "w": 239,
+     "h": 84
+    },
+    {
+     "id": "tb",
+     "title": "Zhel Cycles",
+     "sub": "tenant B · mobile",
+     "icon": "smartphone",
+     "tone": "entry",
+     "size": "sm",
+     "attach": "tb",
+     "x": 12,
+     "y": 140,
+     "w": 256,
+     "h": 84
+    },
+    {
+     "id": "tgw",
+     "title": "API gateway",
+     "sub": "JWT → tenant_id",
+     "icon": "nginx",
+     "tone": "core",
+     "size": "sm",
+     "attach": "tgw",
+     "x": 358,
+     "y": 26,
+     "w": 253,
+     "h": 84
+    },
+    {
+     "id": "torders",
+     "title": "Orders",
+     "sub": "SET app.tenant",
+     "icon": "go",
+     "tone": "default",
+     "size": "sm",
+     "attach": "torders",
+     "x": 701,
+     "y": 26,
+     "w": 243,
+     "h": 84
+    },
+    {
+     "id": "tpg",
+     "title": "PostgreSQL",
+     "sub": "RLS policy",
+     "icon": "postgres",
+     "tone": "store",
+     "size": "sm",
+     "attach": "tpg",
+     "x": 1034,
+     "y": 26,
+     "w": 231,
+     "h": 84
+    }
+   ],
+   "groups": [],
+   "edges": [
+    {
+     "from": "ta",
+     "to": "tgw",
+     "id": "ta-tgw",
+     "points": [
+      [
+       268,
+       54
+      ],
+      [
+       358,
+       54
+      ]
+     ]
+    },
+    {
+     "from": "tb",
+     "to": "tgw",
+     "id": "tb-tgw",
+     "points": [
+      [
+       268,
+       182
+      ],
+      [
+       294,
+       182
+      ],
+      [
+       294,
+       82
+      ],
+      [
+       358,
+       82
+      ]
+     ]
+    },
+    {
+     "from": "tgw",
+     "to": "torders",
+     "id": "tgw-torders",
+     "points": [
+      [
+       611,
+       68
+      ],
+      [
+       701,
+       68
+      ]
+     ]
+    },
+    {
+     "from": "torders",
+     "to": "tpg",
+     "id": "torders-tpg",
+     "points": [
+      [
+       944,
+       68
+      ],
+      [
+       1034,
+       68
+      ]
+     ]
+    }
+   ],
+   "flows": {
+    "a": {
+     "title": "Acme Coffee",
+     "start": "ta",
+     "hops": [
+      {
+       "from": "ta",
+       "to": "tgw",
+       "edge": "ta-tgw",
+       "rev": false
+      },
+      {
+       "from": "tgw",
+       "to": "torders",
+       "edge": "tgw-torders",
+       "rev": false
+      },
+      {
+       "from": "torders",
+       "to": "tpg",
+       "edge": "torders-tpg",
+       "rev": false,
+       "label": "SELECT *"
+      },
+      {
+       "from": "tpg",
+       "to": "torders",
+       "edge": "torders-tpg",
+       "rev": true,
+       "reply": true
+      },
+      {
+       "from": "torders",
+       "to": "tgw",
+       "edge": "tgw-torders",
+       "rev": true,
+       "reply": true
+      },
+      {
+       "from": "tgw",
+       "to": "ta",
+       "edge": "ta-tgw",
+       "rev": true,
+       "reply": true
+      }
+     ]
+    },
+    "b": {
+     "title": "Zhel Cycles",
+     "start": "tb",
+     "hops": [
+      {
+       "from": "tb",
+       "to": "tgw",
+       "edge": "tb-tgw",
+       "rev": false
+      },
+      {
+       "from": "tgw",
+       "to": "torders",
+       "edge": "tgw-torders",
+       "rev": false
+      },
+      {
+       "from": "torders",
+       "to": "tpg",
+       "edge": "torders-tpg",
+       "rev": false,
+       "label": "SELECT *"
+      },
+      {
+       "from": "tpg",
+       "to": "torders",
+       "edge": "torders-tpg",
+       "rev": true,
+       "reply": true
+      },
+      {
+       "from": "torders",
+       "to": "tgw",
+       "edge": "tgw-torders",
+       "rev": true,
+       "reply": true
+      },
+      {
+       "from": "tgw",
+       "to": "tb",
+       "edge": "tb-tgw",
+       "rev": true,
+       "reply": true
+      }
+     ]
+    }
+   }
+  },
+  "pipeline": {
+   "title": "Receipts pipeline",
+   "direction": "RIGHT",
+   "width": 1588,
+   "height": 262,
+   "nodes": [
+    {
+     "id": "pbill",
+     "title": "Billing",
+     "sub": "publishes",
+     "icon": "credit-card",
+     "tone": "default",
+     "size": "sm",
+     "attach": "pbill",
+     "x": 12,
+     "y": 166,
+     "w": 230,
+     "h": 84
+    },
+    {
+     "id": "pq",
+     "title": "Queue",
+     "sub": "RabbitMQ",
+     "icon": "rabbitmq",
+     "tone": "queue",
+     "size": "sm",
+     "attach": "pq",
+     "x": 496,
+     "y": 166,
+     "w": 230,
+     "h": 84
+    },
+    {
+     "id": "pw",
+     "title": "Worker",
+     "sub": "3 consumers",
+     "icon": "cog",
+     "tone": "default",
+     "size": "sm",
+     "attach": "pw",
+     "x": 796,
+     "y": 166,
+     "w": 230,
+     "h": 84
+    },
+    {
+     "id": "pmail",
+     "title": "Mailgun",
+     "sub": "email API",
+     "icon": "mailgun",
+     "tone": "external",
+     "size": "sm",
+     "attach": "pmail",
+     "x": 1346,
+     "y": 166,
+     "w": 230,
+     "h": 84
+    },
+    {
+     "id": "ps3",
+     "title": "S3 bucket",
+     "sub": "invoice PDFs",
+     "icon": "bucket",
+     "tone": "store",
+     "size": "sm",
+     "attach": "ps3",
+     "x": 796,
+     "y": 12,
+     "w": 230,
+     "h": 84
+    }
+   ],
+   "groups": [],
+   "edges": [
+    {
+     "from": "pbill",
+     "to": "pq",
+     "label": "order.paid",
+     "id": "pbill-pq",
+     "points": [
+      [
+       242,
+       208
+      ],
+      [
+       496,
+       208
+      ]
+     ],
+     "labelBox": {
+      "x": 312,
+      "y": 215,
+      "w": 114,
+      "h": 32
+     }
+    },
+    {
+     "from": "pq",
+     "to": "pw",
+     "id": "pq-pw",
+     "points": [
+      [
+       726,
+       208
+      ],
+      [
+       796,
+       208
+      ]
+     ]
+    },
+    {
+     "from": "pw",
+     "to": "pmail",
+     "label": "POST /messages",
+     "id": "pw-pmail",
+     "points": [
+      [
+       1026,
+       208
+      ],
+      [
+       1346,
+       208
+      ]
+     ],
+     "labelBox": {
+      "x": 1096,
+      "y": 215,
+      "w": 180,
+      "h": 32
+     }
+    },
+    {
+     "from": "pw",
+     "to": "ps3",
+     "id": "pw-ps3",
+     "points": [
+      [
+       911,
+       166
+      ],
+      [
+       911,
+       96
+      ]
+     ]
+    }
+   ],
+   "flows": {
+    "publish": {
+     "title": "publish",
+     "start": "pbill",
+     "hops": [
+      {
+       "from": "pbill",
+       "to": "pq",
+       "edge": "pbill-pq",
+       "rev": false,
+       "async": true
+      }
+     ]
+    },
+    "deliver": {
+     "title": "Receipt",
+     "start": "pbill",
+     "hops": [
+      {
+       "from": "pbill",
+       "to": "pq",
+       "edge": "pbill-pq",
+       "rev": false,
+       "async": true
+      },
+      {
+       "from": "pq",
+       "to": "pw",
+       "edge": "pq-pw",
+       "rev": false
+      },
+      {
+       "from": "pw",
+       "to": "pmail",
+       "edge": "pw-pmail",
+       "rev": false,
+       "label": "send"
+      }
+     ]
+    }
+   }
+  },
+  "checkout": {
+   "title": "Checkout trace",
+   "direction": "RIGHT",
+   "width": 1252,
+   "height": 236,
+   "nodes": [
+    {
+     "id": "cweb",
+     "title": "Web app",
+     "sub": "React SPA",
+     "icon": "react",
+     "tone": "entry",
+     "size": "sm",
+     "attach": "cweb",
+     "x": 12,
+     "y": 26,
+     "w": 230,
+     "h": 84
+    },
+    {
+     "id": "cgw",
+     "title": "API gateway",
+     "sub": "nginx",
+     "icon": "nginx",
+     "tone": "core",
+     "size": "sm",
+     "attach": "cgw",
+     "x": 342,
+     "y": 26,
+     "w": 237,
+     "h": 84
+    },
+    {
+     "id": "cauth",
+     "title": "Auth",
+     "sub": "JWT",
+     "icon": "key",
+     "tone": "default",
+     "size": "sm",
+     "attach": "cauth",
+     "x": 679,
+     "y": 12,
+     "w": 230,
+     "h": 84
+    },
+    {
+     "id": "corders",
+     "title": "Orders",
+     "sub": "Go service",
+     "icon": "go",
+     "tone": "default",
+     "size": "sm",
+     "attach": "corders",
+     "x": 679,
+     "y": 140,
+     "w": 230,
+     "h": 84
+    },
+    {
+     "id": "cpg",
+     "title": "PostgreSQL",
+     "sub": "orders",
+     "icon": "postgres",
+     "tone": "store",
+     "size": "sm",
+     "attach": "cpg",
+     "x": 1009,
+     "y": 140,
+     "w": 231,
+     "h": 84
+    }
+   ],
+   "groups": [],
+   "edges": [
+    {
+     "from": "cweb",
+     "to": "cgw",
+     "id": "cweb-cgw",
+     "points": [
+      [
+       242,
+       68
+      ],
+      [
+       342,
+       68
+      ]
+     ]
+    },
+    {
+     "from": "cgw",
+     "to": "cauth",
+     "id": "cgw-cauth",
+     "points": [
+      [
+       579,
+       54
+      ],
+      [
+       679,
+       54
+      ]
+     ]
+    },
+    {
+     "from": "cgw",
+     "to": "corders",
+     "id": "cgw-corders",
+     "points": [
+      [
+       579,
+       82
+      ],
+      [
+       605,
+       82
+      ],
+      [
+       605,
+       182
+      ],
+      [
+       679,
+       182
+      ]
+     ]
+    },
+    {
+     "from": "corders",
+     "to": "cpg",
+     "id": "corders-cpg",
+     "points": [
+      [
+       909,
+       182
+      ],
+      [
+       1009,
+       182
+      ]
+     ]
+    }
+   ],
+   "flows": {
+    "checkout": {
+     "title": "Checkout",
+     "start": "cweb",
+     "hops": [
+      {
+       "from": "cweb",
+       "to": "cgw",
+       "edge": "cweb-cgw",
+       "rev": false,
+       "label": "POST /orders"
+      },
+      {
+       "from": "cgw",
+       "to": "cauth",
+       "edge": "cgw-cauth",
+       "rev": false,
+       "label": "verify"
+      },
+      {
+       "from": "cauth",
+       "to": "cgw",
+       "edge": "cgw-cauth",
+       "rev": true,
+       "reply": true
+      },
+      {
+       "from": "cgw",
+       "to": "corders",
+       "edge": "cgw-corders",
+       "rev": false,
+       "label": "create"
+      },
+      {
+       "from": "corders",
+       "to": "cpg",
+       "edge": "corders-cpg",
+       "rev": false,
+       "label": "INSERT"
+      },
+      {
+       "from": "cpg",
+       "to": "corders",
+       "edge": "corders-cpg",
+       "rev": true,
+       "reply": true
+      },
+      {
+       "from": "corders",
+       "to": "cgw",
+       "edge": "cgw-corders",
+       "rev": true,
+       "reply": true
+      },
+      {
+       "from": "cgw",
+       "to": "cweb",
+       "edge": "cweb-cgw",
+       "rev": true,
+       "label": "201",
+       "reply": true
+      }
+     ]
+    }
+   }
+  },
+  "scale": {
+   "title": "Scale-out",
+   "direction": "RIGHT",
+   "width": 1638,
+   "height": 364,
+   "nodes": [
+    {
+     "id": "users",
+     "title": "Users",
+     "sub": "Black Friday",
+     "icon": "users",
+     "tone": "entry",
+     "size": "sm",
+     "attach": "users",
+     "x": 12,
+     "y": 140,
+     "w": 230,
+     "h": 84
+    },
+    {
+     "id": "lb",
+     "title": "Load balancer",
+     "sub": "round robin",
+     "icon": "split",
+     "tone": "core",
+     "size": "sm",
+     "attach": "lb",
+     "x": 352,
+     "y": 140,
+     "w": 253,
+     "h": 84
+    },
+    {
+     "id": "api-1",
+     "title": "API · 1",
+     "sub": "4 vCPU",
+     "icon": "server",
+     "tone": "default",
+     "size": "sm",
+     "attach": "api-1",
+     "x": 715,
+     "y": 12,
+     "w": 230,
+     "h": 84
+    },
+    {
+     "id": "api-2",
+     "title": "API · 2",
+     "sub": "4 vCPU",
+     "icon": "server",
+     "tone": "default",
+     "size": "sm",
+     "attach": "api-2",
+     "x": 715,
+     "y": 140,
+     "w": 230,
+     "h": 84
+    },
+    {
+     "id": "api-3",
+     "title": "API · 3",
+     "sub": "4 vCPU",
+     "icon": "server",
+     "tone": "default",
+     "size": "sm",
+     "attach": "api-3",
+     "x": 715,
+     "y": 268,
+     "w": 230,
+     "h": 84
+    },
+    {
+     "id": "cache",
+     "title": "Redis",
+     "sub": "read cache",
+     "icon": "redis",
+     "tone": "store",
+     "size": "sm",
+     "attach": "cache",
+     "x": 1055,
+     "y": 140,
+     "w": 230,
+     "h": 84
+    },
+    {
+     "id": "db",
+     "title": "PostgreSQL",
+     "sub": "primary",
+     "icon": "postgres",
+     "tone": "store",
+     "size": "sm",
+     "attach": "db",
+     "x": 1395,
+     "y": 140,
+     "w": 231,
+     "h": 84
+    }
+   ],
+   "groups": [],
+   "edges": [
+    {
+     "from": "users",
+     "to": "lb",
+     "id": "users-lb",
+     "points": [
+      [
+       242,
+       182
+      ],
+      [
+       352,
+       182
+      ]
+     ]
+    },
+    {
+     "from": "lb",
+     "to": "api-1",
+     "id": "lb-api-1",
+     "points": [
+      [
+       605,
+       161
+      ],
+      [
+       631,
+       161
+      ],
+      [
+       631,
+       54
+      ],
+      [
+       715,
+       54
+      ]
+     ]
+    },
+    {
+     "from": "lb",
+     "to": "api-2",
+     "id": "lb-api-2",
+     "points": [
+      [
+       605,
+       182
+      ],
+      [
+       715,
+       182
+      ]
+     ]
+    },
+    {
+     "from": "lb",
+     "to": "api-3",
+     "id": "lb-api-3",
+     "points": [
+      [
+       605,
+       203
+      ],
+      [
+       631,
+       203
+      ],
+      [
+       631,
+       310
+      ],
+      [
+       715,
+       310
+      ]
+     ]
+    },
+    {
+     "from": "api-1",
+     "to": "cache",
+     "id": "api-1-cache",
+     "points": [
+      [
+       945,
+       54
+      ],
+      [
+       971,
+       54
+      ],
+      [
+       971,
+       161
+      ],
+      [
+       1055,
+       161
+      ]
+     ]
+    },
+    {
+     "from": "api-2",
+     "to": "cache",
+     "id": "api-2-cache",
+     "points": [
+      [
+       945,
+       182
+      ],
+      [
+       1055,
+       182
+      ]
+     ]
+    },
+    {
+     "from": "api-3",
+     "to": "cache",
+     "id": "api-3-cache",
+     "points": [
+      [
+       945,
+       310
+      ],
+      [
+       971,
+       310
+      ],
+      [
+       971,
+       203
+      ],
+      [
+       1055,
+       203
+      ]
+     ]
+    },
+    {
+     "from": "cache",
+     "to": "db",
+     "id": "cache-db",
+     "points": [
+      [
+       1285,
+       182
+      ],
+      [
+       1395,
+       182
+      ]
+     ]
+    }
+   ],
+   "flows": {
+    "r1": {
+     "title": "r1",
+     "start": "users",
+     "hops": [
+      {
+       "from": "users",
+       "to": "lb",
+       "edge": "users-lb",
+       "rev": false
+      },
+      {
+       "from": "lb",
+       "to": "api-1",
+       "edge": "lb-api-1",
+       "rev": false
+      },
+      {
+       "from": "api-1",
+       "to": "cache",
+       "edge": "api-1-cache",
+       "rev": false
+      }
+     ]
+    },
+    "r2": {
+     "title": "r2",
+     "start": "users",
+     "hops": [
+      {
+       "from": "users",
+       "to": "lb",
+       "edge": "users-lb",
+       "rev": false
+      },
+      {
+       "from": "lb",
+       "to": "api-2",
+       "edge": "lb-api-2",
+       "rev": false
+      },
+      {
+       "from": "api-2",
+       "to": "cache",
+       "edge": "api-2-cache",
+       "rev": false
+      }
+     ]
+    },
+    "r3": {
+     "title": "r3",
+     "start": "users",
+     "hops": [
+      {
+       "from": "users",
+       "to": "lb",
+       "edge": "users-lb",
+       "rev": false
+      },
+      {
+       "from": "lb",
+       "to": "api-3",
+       "edge": "lb-api-3",
+       "rev": false
+      },
+      {
+       "from": "api-3",
+       "to": "cache",
+       "edge": "api-3-cache",
+       "rev": false
+      }
+     ]
+    }
+   }
+  },
+  "states": {
+   "title": "Order lifecycle",
+   "direction": "RIGHT",
+   "width": 1813,
+   "height": 236,
+   "nodes": [
+    {
+     "id": "created",
+     "title": "Created",
+     "icon": "circle-dot",
+     "tone": "entry",
+     "w": 212,
+     "size": "sm",
+     "attach": "created",
+     "x": 12,
+     "y": 122,
+     "h": 84
+    },
+    {
+     "id": "paid",
+     "title": "Paid",
+     "icon": "credit-card",
+     "w": 212,
+     "tone": "default",
+     "size": "sm",
+     "attach": "paid",
+     "x": 393,
+     "y": 50,
+     "h": 84
+    },
+    {
+     "id": "packed",
+     "title": "Packed",
+     "icon": "package",
+     "w": 212,
+     "tone": "default",
+     "size": "sm",
+     "attach": "packed",
+     "x": 824,
+     "y": 12,
+     "h": 84
+    },
+    {
+     "id": "shipped",
+     "title": "Shipped",
+     "icon": "truck",
+     "w": 212,
+     "tone": "default",
+     "size": "sm",
+     "attach": "shipped",
+     "x": 1199,
+     "y": 12,
+     "h": 84
+    },
+    {
+     "id": "delivered",
+     "title": "Delivered",
+     "icon": "circle-check",
+     "tone": "core",
+     "w": 212,
+     "size": "sm",
+     "attach": "delivered",
+     "x": 1589,
+     "y": 12,
+     "h": 84
+    },
+    {
+     "id": "cancelled",
+     "title": "Cancelled",
+     "icon": "circle-x",
+     "tone": "danger",
+     "w": 212,
+     "size": "sm",
+     "attach": "cancelled",
+     "x": 824,
+     "y": 140,
+     "h": 84
+    }
+   ],
+   "groups": [],
+   "edges": [
+    {
+     "from": "created",
+     "to": "paid",
+     "label": "[paid]",
+     "id": "created-paid",
+     "points": [
+      [
+       224,
+       150
+      ],
+      [
+       250,
+       150
+      ],
+      [
+       250,
+       92
+      ],
+      [
+       393,
+       92
+      ]
+     ],
+     "labelBox": {
+      "x": 276,
+      "y": 53,
+      "w": 77,
+      "h": 32
+     }
+    },
+    {
+     "from": "paid",
+     "to": "packed",
+     "label": "[in stock]",
+     "id": "paid-packed",
+     "points": [
+      [
+       605,
+       78
+      ],
+      [
+       631,
+       78
+      ],
+      [
+       631,
+       54
+      ],
+      [
+       824,
+       54
+      ]
+     ],
+     "labelBox": {
+      "x": 660,
+      "y": 61,
+      "w": 110,
+      "h": 32
+     }
+    },
+    {
+     "from": "packed",
+     "to": "shipped",
+     "label": "[label]",
+     "id": "packed-shipped",
+     "points": [
+      [
+       1036,
+       54
+      ],
+      [
+       1199,
+       54
+      ]
+     ],
+     "labelBox": {
+      "x": 1076,
+      "y": 61,
+      "w": 83,
+      "h": 32
+     }
+    },
+    {
+     "from": "shipped",
+     "to": "delivered",
+     "label": "[signed]",
+     "id": "shipped-delivered",
+     "points": [
+      [
+       1411,
+       54
+      ],
+      [
+       1589,
+       54
+      ]
+     ],
+     "labelBox": {
+      "x": 1451,
+      "y": 61,
+      "w": 98,
+      "h": 32
+     }
+    },
+    {
+     "from": "created",
+     "to": "cancelled",
+     "label": "[30 min idle]",
+     "id": "created-cancelled",
+     "points": [
+      [
+       224,
+       178
+      ],
+      [
+       798,
+       178
+      ],
+      [
+       798,
+       196
+      ],
+      [
+       824,
+       196
+      ]
+     ],
+     "labelBox": {
+      "x": 430,
+      "y": 185,
+      "w": 138,
+      "h": 32
+     }
+    },
+    {
+     "from": "paid",
+     "to": "cancelled",
+     "label": "[no stock]",
+     "id": "paid-cancelled",
+     "points": [
+      [
+       605,
+       106
+      ],
+      [
+       631,
+       106
+      ],
+      [
+       631,
+       112
+      ],
+      [
+       798,
+       112
+      ],
+      [
+       798,
+       168
+      ],
+      [
+       824,
+       168
+      ]
+     ],
+     "labelBox": {
+      "x": 657,
+      "y": 119,
+      "w": 115,
+      "h": 32
+     }
+    }
+   ],
+   "flows": {}
+  }
+ }
+}
