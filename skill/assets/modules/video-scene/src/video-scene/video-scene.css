@@ -1,0 +1,96 @@
+/*
+ * Embedded video scene. Plain CSS (no Tailwind utilities), so no `scale-*`/`translate-*` class can
+ * fight the transforms GSAP sets. Colours come from theme tokens; map them here once per deck.
+ */
+.vs-root {
+  /* starter tokens first (theme.css), then the names older decks used, then neutral values */
+  --vs-bg: var(--color-hero, var(--hero-bg, #0e1116));           /* backdrop of the intro/outro and panels */
+  --vs-text: var(--color-hero-ink, var(--hero-text, #f4f4f5));
+  --vs-muted: var(--color-hero-muted, var(--hero-muted, #a1a1aa));
+  --vs-accent: var(--color-accent, var(--color-accent-400, #f59e0b)); /* progress fill, current chapter */
+  --vs-panel: color-mix(in srgb, var(--vs-bg) 90%, transparent);
+  --vs-mono: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  position: absolute; inset: 0; overflow: hidden; color: var(--vs-text);
+}
+.vs-root * { box-sizing: border-box; }
+.vs-bgfill { position: absolute; inset: 0; background: var(--vs-bg); }
+.vs-root.vs-kind-card .vs-bgfill { opacity: 0; }            /* card intro: the previous scene shows around the card */
+.scene.vs-scene-card { background: transparent; }           /* (the engine gives .scene an opaque canvas colour) */
+
+.vs-frame { position: absolute; inset: 0; overflow: hidden; background: #000; }
+.vs-video { position: absolute; inset: 0; width: 100%; height: 100%; display: block; background: #000; }
+.vs-poster { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; pointer-events: none; }
+.vs-export .vs-poster, .vs-failed .vs-poster, .vs-waiting .vs-poster { opacity: 1; }
+
+/* intro / outro layer over the video */
+.vs-intro { position: absolute; inset: 0; }
+.vs-intro-bg { position: absolute; inset: 0; background: var(--vs-bg); }
+.vs-reveal { position: absolute; inset: 0; background-size: cover; background-position: center; }
+.vs-markbox { position: absolute; transform-origin: 50% 50%; }
+.vs-mark, .vs-mark-landed { position: absolute; inset: 0; display: grid; place-items: center; }
+.vs-mark > *, .vs-mark-landed > * { width: 100%; height: 100%; }
+.vs-ping { position: absolute; inset: -6%; border-radius: 28%; border: 3px solid var(--vs-accent); opacity: 0; pointer-events: none; }
+.vs-eyebrow, .vs-outtext { position: absolute; left: 0; right: 0; top: 760px; text-align: center; font-family: var(--vs-mono); font-size: 22px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--vs-muted); }
+.vs-title { position: absolute; left: 160px; right: 160px; top: 430px; text-align: center; font-size: 76px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.05; }
+.vs-fade-eyebrow { top: 380px; }
+
+/* player bar */
+.vs-hud { position: absolute; left: 0; right: 0; bottom: 0; padding: 120px 72px 44px; background: linear-gradient(to top, rgb(0 0 0 / 0.78), transparent); visibility: hidden; }
+.vs-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.vs-row-left { display: flex; align-items: center; gap: 16px; }
+.vs-btn { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 999px; cursor: pointer; background: rgb(255 255 255 / 0.12); color: var(--vs-text); border: 1px solid rgb(255 255 255 / 0.28); padding: 0; }
+.vs-btn svg { width: 24px; height: 24px; }
+.vs-chnum { font-family: var(--vs-mono); font-size: 20px; color: var(--vs-accent); }
+.vs-chname { font-size: 30px; font-weight: 600; }
+.vs-flag { font-family: var(--vs-mono); font-size: 18px; letter-spacing: 0.1em; color: var(--vs-muted); }
+.vs-time { font-family: var(--vs-mono); font-size: 20px; color: var(--vs-muted); font-variant-numeric: tabular-nums; }
+.vs-scrub { position: relative; padding: 14px 0; margin: -14px 0; cursor: pointer; touch-action: none; }
+.vs-track { position: relative; height: 8px; border-radius: 999px; background: rgb(255 255 255 / 0.22); }
+.vs-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: var(--vs-accent); }
+.vs-knob { position: absolute; top: 50%; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 999px; background: #fff; box-shadow: 0 0 0 4px color-mix(in srgb, var(--vs-accent) 45%, transparent); }
+.vs-tick { position: absolute; top: -5px; width: 3px; height: 18px; margin-left: -1.5px; border-radius: 999px; background: rgb(255 255 255 / 0.5); }
+.vs-tick.on { background: #fff; }
+.vs-hover { position: absolute; bottom: 22px; transform: translateX(-50%); white-space: nowrap; pointer-events: none; font-family: var(--vs-mono); font-size: 16px; padding: 4px 12px; border-radius: 6px; background: var(--vs-panel); color: var(--vs-text); }
+.vs-chips { position: relative; height: 34px; margin-top: 12px; }
+.vs-chip { position: absolute; white-space: nowrap; cursor: pointer; background: transparent; border: 0; padding: 0; font-family: var(--vs-mono); font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--vs-muted); opacity: 0.75; }
+.vs-chip:hover { text-decoration: underline; }
+.vs-chip.on { color: var(--vs-text); opacity: 1; }
+.vs-toast { position: absolute; left: 50%; top: 40px; transform: translateX(-50%); white-space: nowrap; font-family: var(--vs-mono); font-size: 20px; letter-spacing: 0.06em; padding: 12px 24px; border-radius: 999px; background: var(--vs-panel); color: var(--vs-text); box-shadow: 0 0 0 1px rgb(255 255 255 / 0.18); pointer-events: none; }
+.vs-bigplay { position: absolute; left: 50%; top: 50%; width: 140px; height: 140px; margin: -70px 0 0 -70px; border-radius: 999px; display: grid; place-items: center; background: var(--vs-panel); color: var(--vs-text); border: 2px solid rgb(255 255 255 / 0.3); cursor: pointer; }
+.vs-bigplay svg { width: 56px; height: 56px; margin-left: 6px; }
+
+/* missing file */
+.vs-fallback { position: absolute; inset: 0; display: grid; place-items: center; background: color-mix(in srgb, var(--vs-bg) 82%, transparent); }
+.vs-fallback-card { width: 1080px; display: flex; gap: 40px; align-items: center; padding: 40px; border-radius: 28px; background: var(--vs-bg); box-shadow: 0 0 0 1px rgb(255 255 255 / 0.14), 0 30px 80px rgb(0 0 0 / 0.4); }
+.vs-fallback-thumb { width: 400px; aspect-ratio: 16 / 9; flex: none; border-radius: 16px; object-fit: cover; background: rgb(255 255 255 / 0.06); }
+.vs-fallback h3 { margin: 0 0 12px; font-size: 38px; font-weight: 700; letter-spacing: -0.02em; }
+.vs-fallback p { margin: 0 0 10px; font-size: 22px; line-height: 1.45; color: var(--vs-muted); }
+.vs-fallback code { font-family: var(--vs-mono); font-size: 18px; color: var(--vs-text); word-break: break-all; }
+
+/* export page 2: chapters */
+.vs-chapters { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--vs-bg) 88%, transparent); visibility: hidden; }
+.vs-chapters-card { width: 1200px; }
+.vs-chapters-eyebrow { font-family: var(--vs-mono); font-size: 22px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--vs-muted); margin-bottom: 18px; }
+.vs-chapters-title { font-size: 64px; font-weight: 700; letter-spacing: -0.03em; margin: 0 0 36px; }
+.vs-chapters ol { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 14px 56px; }
+.vs-chapters li { display: flex; gap: 22px; align-items: baseline; font-size: 30px; padding: 12px 0; border-bottom: 1px solid rgb(255 255 255 / 0.14); }
+.vs-chapters li span { font-family: var(--vs-mono); font-size: 22px; color: var(--vs-accent); font-variant-numeric: tabular-nums; min-width: 72px; }
+.vs-chapters-src { margin-top: 30px; font-family: var(--vs-mono); font-size: 18px; color: var(--vs-muted); }
+
+.vs-export .vs-hud, .vs-export .vs-toast, .vs-export .vs-bigplay, .vs-export .vs-fallback { display: none; }
+
+/* frames.tsx: Caption, BrowserFrame, PhoneFrame (stills around the video) */
+.vs-caption { position: absolute; left: 0; right: 0; display: flex; justify-content: center; pointer-events: none; }
+.vs-caption > span { display: flex; align-items: center; gap: 20px; border-radius: 999px; padding: 18px 44px; font-size: 34px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap;
+  background: var(--color-primary, #2f4bd3); color: var(--color-on-primary, #fff); box-shadow: var(--shadow-lg, 0 18px 44px rgb(0 0 0 / 0.28)); }
+.vs-caption i { flex: none; width: 14px; height: 14px; border-radius: 999px; background: var(--color-accent, #f59e0b); }
+.vs-browser { border-radius: 14px; overflow: hidden; background: var(--color-surface, #fff); border: 1px solid var(--color-line, #ddd); box-shadow: var(--shadow-lg, 0 30px 70px rgb(0 0 0 / 0.18)); }
+.vs-browser-bar { height: 32px; display: flex; align-items: center; gap: 7px; padding: 0 16px; background: var(--color-sunken, #efefec); border-bottom: 1px solid var(--color-line, #ddd); }
+.vs-browser-bar i { width: 10px; height: 10px; border-radius: 999px; background: #E5675B; }
+.vs-browser-bar i:nth-child(2) { background: #E9B949; }
+.vs-browser-bar i:nth-child(3) { background: #5EBB5E; }
+.vs-browser-bar span { margin-left: 16px; font-family: var(--font-mono, ui-monospace, monospace); font-size: 13px; color: var(--color-muted, #6a6e78); }
+.vs-browser img { display: block; width: 100%; }
+.vs-phone { border-radius: 40px; padding: 11px; background: #111318; box-shadow: var(--shadow-lg, 0 30px 70px rgb(0 0 0 / 0.22)); }
+.vs-phone > div { height: 100%; overflow: hidden; border-radius: 30px; background: #fff; }
+.vs-phone img { display: block; height: 100%; width: auto; }
