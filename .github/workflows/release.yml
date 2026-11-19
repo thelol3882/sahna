@@ -1,0 +1,21 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  skill-zip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # claude.ai wants the skill folder at the root of the zip, named like the skill
+      - name: zip skill/ as sahna-skill.zip
+        run: bash scripts/zip-skill.sh sahna-skill.zip
+      - name: publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" sahna-skill.zip --title "$GITHUB_REF_NAME" --generate-notes
