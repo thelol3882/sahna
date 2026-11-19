@@ -2,7 +2,7 @@
 
     python scripts/walk.py [--html dist-single/index.html] [--out walk/]
 
-1. A press during the cover entrance is ignored; Shift+→ finishes it; a stage click and the wheel do not advance.
+1. A press during the cover entrance stays in the scene (it speeds the entrance up by default); Shift+→ finishes it; a stage click and the wheel do not advance.
 2. → through every main scene, waiting for the waiting cue between presses; frames at 250/500/750 ms after each
    press and at the cue go to walk/contact.png. The last main scene never runs into the backup slides.
 3. Presenting tools and backup slides: B + → lifts the black screen without moving; D draws, Backspace undoes,
@@ -85,15 +85,17 @@ async def run(target: str | None, out: pathlib.Path) -> int:
         await pg.keyboard.press("ArrowRight")
         await pg.wait_for_timeout(200)
         s1 = await state(pg)
-        w.check((s1["index"], s1["step"], s1["waiting"]) == (s0["index"], s0["step"], False), "→ during the entrance is ignored")
+        # DECK.fastFinishOnPress (default true) speeds the entrance up; false ignores the press. Either way it stays.
+        w.check((s1["index"], s1["step"]) == (s0["index"], s0["step"]), "→ during the entrance stays in the scene (speeds it up or waits)")
         await pg.mouse.click(960, 540)
         await pg.wait_for_timeout(200)
         s2 = await state(pg)
         w.check((s2["index"], s2["step"]) == (s0["index"], s0["step"]), "a click on the stage does not advance")
-        await pg.keyboard.press("Shift+ArrowRight")
+        if not (await state(pg))["waiting"]:
+            await pg.keyboard.press("Shift+ArrowRight")
         await pg.wait_for_timeout(700)
         s3 = await state(pg)
-        w.check(s3["waiting"] and s3["index"] == s0["index"], "Shift+→ finishes the entrance without leaving the scene")
+        w.check(s3["waiting"] and s3["index"] == s0["index"], "the entrance finishes without leaving the scene")
         await pg.mouse.wheel(0, 600)
         await pg.wait_for_timeout(400)
         s4 = await state(pg)

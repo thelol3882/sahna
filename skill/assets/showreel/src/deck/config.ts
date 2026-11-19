@@ -21,8 +21,8 @@ export const DECK = {
     { id: "b", name: "Daniyar Omarov" },
     { id: "c", name: "Mira Lee" },
   ] as { id: string; name: string }[],
-  /** a press during an entrance: false = ignored (Shift+→ fast-finishes), true = old behaviour (fast-finish on every press) */
-  fastFinishOnPress: false,
+  /** a press during a running part: true = finish it quickly and stay on the step (default); false = ignore it (Shift+→ still finishes) */
+  fastFinishOnPress: true,
   /** mouse wheel / touch swipes step the deck (own lock, 750 ms) */
   wheel: false,
   /** hold this key (KeyboardEvent.code) for the laser dot; not L, the video scene uses J/K/L */

@@ -127,7 +127,7 @@ move a backup slide unless the server allows part 0 / the lead.
   new `counter`, `Card` with `tone`, `Pill`). Imports stay `from "../deck"`.
 - Meta: `notes` string → `notes: string[]`; new `steps`, `section`, `source`, `appendix`, `tags`, `twoPage`;
   `speaker` is optional and an id (not a name union); `bare` dropped (no header in the neutral chrome).
-- Input per SKILL §2: press during a running part is ignored (`DECK.fastFinishOnPress` restores the old fast-finish),
+- Input per SKILL §2: a press during a running part finishes it quickly (`DECK.fastFinishOnPress: false` makes it wait instead),
   Shift+→ skips (0.35 s); wheel/touch off unless `DECK.wheel` (own 750 ms lock); keys read by `e.code` (Cyrillic
   layouts work); digits by code (Kazakh digit row types letters); jumps use `tl.pause(); tl.seek(t, false)`;
   print uses the same (reference used `tl.progress(1)`, which suppresses callbacks). Esc locked in fullscreen.

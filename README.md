@@ -96,6 +96,27 @@ The showreel and the world example run live at https://thelol3882.github.io/sahn
 
 The scripts run locally: the checks start a headless Chromium, `npx sahna doctor --fix` runs `pip install` and `playwright install chromium`, `tools/fonts.py` asks npm for font packages, and the recording module opens a Cloudflare quick tunnel and talks to OBS over its WebSocket.
 
+## Keys
+
+Press `?` in any deck to see these on screen. They work the same on a Cyrillic layout, and presentation clickers send → or PageDown.
+
+| Key | What it does |
+|---|---|
+| → Space PageDown | next step or scene; during an animation it finishes the animation quickly |
+| Shift + → | finish the running animation now |
+| ← PageUp | back |
+| 1–9 Home End | jump to a scene |
+| / or Ctrl/⌘ K | search the backup slides; Esc returns to the same scene and step |
+| B / W | black / white screen; the same key or → brings the deck back |
+| hold X | laser dot that follows the mouse |
+| D | draw on the scene; Backspace undo, C clear, Esc leave |
+| F | fullscreen |
+| R | replay the intro |
+| P | presenter window with notes, timers and the next step |
+| ? | this list |
+
+Mouse clicks on the stage never move the deck, so touching the touchpad is safe.
+
 ## Limits
 
 - Performance was measured only in a headless browser with software rendering. Rehearse once on the laptop you present from; `__deck.gl()` shows whether shaders passed the GPU budget.
