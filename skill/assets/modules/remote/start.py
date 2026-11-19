@@ -128,13 +128,18 @@ def links(cfg, key, lead, tunnel):
     return out
 
 
+def camera_on(cfg):
+    c = (cfg.get("recording") or {}).get("camera")
+    return c is True or (isinstance(c, dict) and c.get("enabled") is not False)
+
+
 def team_message(cfg, ln, record=True):
     lines = [f"{cfg['title']}: " + ("we record" if record else "deck remote")]
     if record:
         lines += [
             "1. Join the call on your laptop (not on the phone) and put headphones on.",
             "2. Open your link below on your phone: Chrome on Android, Safari on iPhone.",
-            "3. Tap \"I'm ready\" and allow the microphone.",
+            "3. Tap \"I'm ready\" and allow the microphone" + (" and the camera (your face is on the slides while you talk)." if camera_on(cfg) else "."),
             "4. Keep that page open with the screen on until the lead says stop.",
             "5. Your Next button lights up on your part: press it when the slide stops moving.",
             "6. If a red bar says the microphone stopped, tap it.",
@@ -208,6 +213,93 @@ def open_path(path):
         return False
 
 
+LOCAL_CONFIG = os.path.join(HERE, "config.local.json")
+
+
+def read_local():
+    try:
+        with open(LOCAL_CONFIG, encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def write_local(data):
+    with open(LOCAL_CONFIG, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+
+
+def obs_check(url, password):
+    """Asks OBS through node (the ws package is already there): connected | auth | wrong-password | not-found."""
+    try:
+        r = subprocess.run(["node", os.path.join(HERE, "obs-check.mjs"), url, password],
+                           capture_output=True, text=True, encoding="utf-8", timeout=15)
+        return json.loads((r.stdout or "").strip().splitlines()[-1])
+    except (OSError, ValueError, IndexError, subprocess.TimeoutExpired) as e:
+        return {"state": "not-found", "error": str(e)}
+
+
+def interactive():
+    return sys.stdin.isatty() and sys.stdout.isatty() and not os.environ.get("CI")
+
+
+def ask(prompt, default=""):
+    try:
+        answer = input(prompt).strip()
+    except EOFError:
+        return default
+    return answer or default
+
+
+def obs_setup(cfg, force=False):
+    """The one-time OBS question. Saves the answer to remote/config.local.json (git-ignored).
+    Asks only in a terminal, and only when nothing is saved yet (or with npm run obs)."""
+    local = read_local()
+    if not force and ("obs" in local or not interactive()):
+        return False
+    if not interactive():
+        print("npm run obs needs a terminal: run it in PowerShell, Terminal or cmd.")
+        return False
+    base = cfg.get("obs") if isinstance(cfg.get("obs"), dict) else {}
+    url = base.get("url") or "ws://127.0.0.1:4455"
+    print()
+    print("OBS automation: Start and Stop on the control page also start and stop the OBS recording,")
+    print("and the take is mixed into final.mp4 by itself. You set this up once.")
+    yes = ask("Use it? [Y/n] ", "y").lower()
+    if yes.startswith("n"):
+        local["obs"] = False
+        write_local(local)
+        print("Saved: OBS by hand (start its recording before Start, stop it after Stop). Change it: npm run obs")
+        return True
+    print()
+    print("In OBS: Tools -> WebSocket Server Settings -> tick 'Enable WebSocket server' -> Apply -> 'Show Connect Info'.")
+    for attempt in range(3):
+        password = ask("Paste the Server Password (or just press Enter if 'Enable Authentication' is off): ")
+        print("Checking OBS...")
+        r = obs_check(url, password)
+        state = r.get("state")
+        if state == "connected":
+            local["obs"] = {**({k: v for k, v in (local.get("obs") or {}).items()} if isinstance(local.get("obs"), dict) else {}), "password": password}
+            write_local(local)
+            print(f"OBS connected (obs-websocket {r.get('version') or '5'}). Saved to remote/config.local.json (git ignores it).")
+            return True
+        if state in ("auth", "wrong-password"):
+            print("OBS says the password is wrong. Copy it again with 'Show Connect Info' -> Copy (Server Password).")
+            continue
+        print("OBS did not answer. Is OBS open, with 'Enable WebSocket server' ticked and Apply pressed?")
+        if ask("Try again? [Y/n] ", "y").lower().startswith("n"):
+            break
+    if password or ask("Save this password anyway and connect when OBS is open? [y/N] ", "n").lower().startswith("y"):
+        local["obs"] = {"password": password}
+        write_local(local)
+        print("Saved. The control page shows 'OBS connected' once OBS is open. Change it: npm run obs")
+        return True
+    print("Nothing saved: you will be asked again next time (or run npm run obs).")
+    return False
+
+
 def obs_line(st):
     o = (st or {}).get("obs") or {}
     state = o.get("state")
@@ -215,10 +307,10 @@ def obs_line(st):
         return "OBS: connected. Start on the control page starts the OBS recording too."
     if state == "auth":
         return ("OBS: needs the password. OBS -> Tools -> WebSocket Server Settings -> Show Connect Info,\n"
-                "     copy the password into remote/config.local.json {\"obs\": {\"password\": \"...\"}}, then npm run record -- --fresh.\n"
+                "     run npm run obs to paste it, then npm run record -- --fresh.\n"
                 "     Until then: start the OBS recording by hand before Start.")
     if state == "off":
-        return "OBS: automation off (config.json \"obs\": false). Start the OBS recording by hand before Start."
+        return "OBS: by hand (start its recording before Start). Turn automation on: npm run obs"
     return ("OBS: not found. Open OBS (Tools -> WebSocket Server Settings -> Enable), or start the OBS recording\n"
             "     by hand before Start. Setup once: remote/RECORDING.md")
 
@@ -778,6 +870,7 @@ def main():
     ap.add_argument("--no-build", action="store_true", help="node mode: do not build the deck")
     ap.add_argument("--qr", action="store_true", help="also print the phone link as a QR code")
     ap.add_argument("--qr-invert", action="store_true", help="QR code for terminals with a light background")
+    ap.add_argument("--obs", action="store_true", help="set up OBS automation (npm run obs)")
     ap.add_argument("--helper", action="store_true", help=argparse.SUPPRESS)
     a = ap.parse_args()
 
@@ -788,6 +881,14 @@ def main():
     cfg = load_config()
     if a.stop:
         stop()
+        return
+    if a.obs:
+        if obs_setup(cfg, force=True):
+            s = load_state()
+            if s and s.get("mode") == "docker" and healthy(s, False):
+                print("The remote runs in Docker: restart it to use the new OBS setting: npm run record -- --fresh")
+            elif s and healthy(s, False):
+                print("The running remote picks this up by itself in a few seconds.")
         return
 
     if a.dry_run:
@@ -821,6 +922,8 @@ def main():
         print_summary(cfg, s, st, record, opened, copied, qr=a.qr, invert=a.qr_invert)
         return
 
+    if record and not a.local and obs_setup(cfg):
+        cfg = load_config()
     mode = a.mode
     if mode == "auto":
         mode = "docker" if docker_ready() else "node"

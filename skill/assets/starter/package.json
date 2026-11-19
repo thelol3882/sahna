@@ -16,7 +16,11 @@
     "typecheck": "tsc -b",
     "remote": "node remote/run.mjs",
     "record": "node remote/run.mjs --record",
-    "remote:stop": "node remote/run.mjs --stop"
+    "remote:stop": "node remote/run.mjs --stop",
+    "stop": "node remote/run.mjs --stop",
+    "mix": "node remote/run.mjs --mix",
+    "links": "node remote/run.mjs --links",
+    "obs": "node remote/run.mjs --obs"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",

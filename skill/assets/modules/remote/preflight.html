@@ -41,6 +41,8 @@ header .conn.off i { background: var(--bad); }
 .under { grid-column: 1 / -1; font-size: 15px; color: var(--faint); }
 .done { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 10px; padding-top: 18px; border-top: 1px solid var(--line); }
 .done code { font: 15px var(--mono); color: var(--ink); background: var(--bg); padding: 8px 12px; border-radius: 10px; overflow-wrap: anywhere; flex: 1 1 320px; }
+.leadwarn { grid-column: 1 / -1; display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-radius: 14px; background: #3a1d22; color: #ffc9cf; font-size: 17px; }
+.leadwarn button { min-height: 46px; padding: 0 18px; border-radius: 12px; background: #ff5a6a; color: #fff; font-weight: 800; font-size: 16px; flex: none; }
 .done button { min-height: 46px; padding: 0 18px; border-radius: 12px; background: var(--raise); font-weight: 700; font-size: 16px; }
 
 .obs { display: flex; align-items: center; gap: 12px; padding: 0 6px; font-size: 16px; color: var(--muted); }
@@ -89,6 +91,7 @@ summary small { color: var(--faint); font-weight: 500; }
     <button class="primary" id="primary" disabled>Start recording</button>
     <div class="sub" id="sub"></div>
     <div class="under" id="under"></div>
+    <div class="leadwarn" id="leadWarn" hidden><span id="leadWarnText">The lead deck is closed: phones and Start cannot move the slides.</span><button id="openLead">Open the lead deck</button></div>
     <div class="done" id="done" hidden><code id="donePath"></code><button id="openFolder">Open folder</button><button id="copyPath">Copy path</button></div>
   </section>
 
@@ -223,6 +226,8 @@ function render() {
     big = "DONE"; cls = "go"; sub = mx.note ? cap(mx.note) : "final.mp4 is ready: voices under the OBS video."; btn = "New take"; bcls = "start soft";
   } else if (mx && mx.state === "error") {
     big = "MIX FAILED"; cls = "bad"; sub = mx.error || "see the helper log (remote/.run/helper.log)"; btn = "New take"; bcls = "start soft";
+  } else if (!(s.lead.decks > 0)) {
+    big = "LEAD DECK CLOSED"; cls = "bad"; sub = "Open it again: phones and Start drive the slides through it."; btn = "Open the lead deck"; bcls = "start";
   } else if (ready) { big = "READY"; cls = "go"; sub = `All ${s.speakers.length} speakers ready.`; }
   else {
     big = waitingFor.length ? `WAITING FOR ${waitingFor.length}` : "NOT READY"; cls = "";
@@ -239,6 +244,11 @@ function render() {
   $("under").textContent = (recOn ? (obsOn ? "Stop also stops OBS. The mix starts by itself." : "After Stop, stop the OBS recording too. The mix starts by itself.")
     : obsOn ? "Start starts OBS, then 3-2-1 on the phones and the sync beep. Ctrl+R in the lead deck does the same."
     : "Start the OBS recording first, then press Start: 3-2-1 on the phones, then the sync beep.") + hiddenNote;
+
+  // the lead deck closed during a take (or any time): a red bar with one button, never hidden in the details
+  $("leadWarn").hidden = s.lead.decks > 0 || big === "LEAD DECK CLOSED";
+  $("leadWarnText").textContent = recOn ? "The lead deck is closed: the slides stopped following. Open it, it lands on the current slide."
+    : "The lead deck is closed: phones and Start cannot move the slides.";
 
   // the result of the mix
   const showDone = mx && mx.state === "done" && !recOn;
@@ -297,10 +307,16 @@ function arm(what) {
   render();
 }
 function sendRec(action) { if (sock && sock.readyState === 1) sock.send(JSON.stringify({ type: "rec", action })); armed = null; lastError = null; render(); }
+const leadUrl = () => `${location.origin}/?remote&k=${encodeURIComponent(key)}&lead=${encodeURIComponent(lead)}` + (status && status.lead && status.lead.at ? "#" + encodeURIComponent(status.lead.at) : "");
+// opens on the scene the talk is on (no intro); the server then sends the exact step
+// a named window, so a second click focuses the same lead deck instead of opening another one
+const openLead = () => { const w = window.open(leadUrl(), "sahna-lead-deck"); if (w) w.focus(); };
+$("openLead").onclick = openLead;
 $("primary").onclick = () => {
   if (!status) return;
   const rec = status.rec || {};
   const recOn = rec.state === "countdown" || rec.state === "recording";
+  if (!recOn && !(status.lead.decks > 0) && !["waiting", "pending", "mixing"].includes((status.mix || {}).state)) { openLead(); return; }
   if (recOn) { if (armed === "stop") sendRec("stop"); else arm("stop"); return; }
   const ready = computeChecks(status).filter((c) => c.req).every((c) => c.ok);
   if (ready || armed === "start") sendRec("start"); else arm("start");

@@ -169,9 +169,13 @@ for (let press = 0; press < 2; press++) {
 const after = await stateIdx();
 assert.ok(after.index > before.index || after.step > before.step, `phones moved the deck: ${JSON.stringify(before)} → ${JSON.stringify(after)}`);
 await leadDeck.bringToFront();
-await leadDeck.keyboard.press("ArrowRight");
-await sleep(2500);
-const afterLead = await stateIdx();
+// a press during an animation only finishes it (the intro replays after the beep), so press until the deck moves
+let afterLead = after;
+for (let i = 0; i < 4 && !(afterLead.index > after.index || afterLead.step > after.step); i++) {
+  await leadDeck.keyboard.press("ArrowRight");
+  await sleep(2500);
+  afterLead = await stateIdx();
+}
 console.log(`deck: ${JSON.stringify(before)} → phones ${JSON.stringify(after)} → lead key ${JSON.stringify(afterLead)}`);
 assert.ok(afterLead.index > after.index || afterLead.step > after.step, "the lead deck's arrow key moved every deck");
 await phones[0].screenshot({ path: join(SHOTS, "phone-6-recording.png") });
