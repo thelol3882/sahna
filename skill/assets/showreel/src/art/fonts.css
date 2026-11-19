@@ -1,0 +1,26 @@
+/* Self-hosted fonts (offline). Written by tools/apply_pack.py from a pack's fonts.json — every face was checked for
+   the talk language with tools/fonts.py. Default (the starter's own look): Geist Variable for display type,
+   Inter for text, Geist Mono for labels and code. All three cover Latin, Cyrillic and Kazakh. */
+@import "@fontsource-variable/geist/wght.css";
+@import "@fontsource/inter/latin-400.css";
+@import "@fontsource/inter/latin-500.css";
+@import "@fontsource/inter/latin-600.css";
+@import "@fontsource/inter/latin-700.css";
+@import "@fontsource/inter/latin-ext-400.css";
+@import "@fontsource/inter/latin-ext-600.css";
+@import "@fontsource/inter/latin-ext-700.css";
+@import "@fontsource/inter/cyrillic-400.css";
+@import "@fontsource/inter/cyrillic-500.css";
+@import "@fontsource/inter/cyrillic-600.css";
+@import "@fontsource/inter/cyrillic-700.css";
+@import "@fontsource/inter/cyrillic-ext-400.css";
+@import "@fontsource/inter/cyrillic-ext-600.css";
+@import "@fontsource/inter/cyrillic-ext-700.css";
+@import "@fontsource/geist-mono/latin-400.css";
+@import "@fontsource/geist-mono/latin-500.css";
+@import "@fontsource/geist-mono/latin-ext-400.css";
+@import "@fontsource/geist-mono/latin-ext-500.css";
+@import "@fontsource/geist-mono/cyrillic-400.css";
+@import "@fontsource/geist-mono/cyrillic-500.css";
+@import "@fontsource/geist-mono/cyrillic-ext-400.css";
+@import "@fontsource/geist-mono/cyrillic-ext-500.css";

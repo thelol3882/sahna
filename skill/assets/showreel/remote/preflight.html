@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pre-flight</title>
+<style>
+/* The lead's console: is everyone ready, then REC for everyone, then watch the uploads during the take. */
+:root {
+  --bg: #0F1420; --surface: #182031; --ink: #EDF0F6; --muted: #9AA3B8; --line: #273046;
+  --good: #3DBE7A; --warn: #F2B544; --bad: #FF6B5E; --rec: #E53935; --accent: #5C82FF;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; --mono: ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.4 var(--font); }
+[hidden] { display: none !important; }
+main { max-width: 1100px; margin: 0 auto; padding: 24px; display: grid; gap: 18px; }
+header { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+h1 { margin: 0; font-size: 22px; }
+.ready { margin-left: auto; padding: 14px 26px; border-radius: 16px; font-size: 26px; font-weight: 800; background: var(--surface); color: var(--muted); border: 2px solid var(--line); }
+.ready.go { background: var(--good); color: #062; border-color: var(--good); color: #04220F; }
+.ready.rec { background: var(--rec); color: #fff; border-color: var(--rec); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; }
+.card h2 { margin: 0 0 10px; font-size: 15px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.checks { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px 18px; }
+.check { display: flex; gap: 10px; align-items: baseline; }
+.check b { width: 1.2em; text-align: center; }
+.ok b { color: var(--good); } .no b { color: var(--bad); } .opt b { color: var(--warn); }
+.check small { color: var(--muted); }
+table { width: 100%; border-collapse: collapse; font-size: 15px; }
+th { text-align: left; color: var(--muted); font-weight: 600; font-size: 13px; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+td { padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+td.n { font-weight: 700; }
+.pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 13px; font-weight: 700; background: var(--line); color: var(--muted); }
+.pill.good { background: rgba(61,190,122,.18); color: var(--good); }
+.pill.bad { background: rgba(255,107,94,.18); color: var(--bad); }
+.pill.warn { background: rgba(242,181,68,.18); color: var(--warn); }
+.meter { width: 120px; height: 10px; border-radius: 6px; background: var(--line); overflow: hidden; }
+.meter i { display: block; height: 100%; width: 0; background: var(--good); transition: width .1s; }
+.rec { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.rec button { min-height: 56px; padding: 0 28px; border-radius: 14px; border: 0; font-size: 18px; font-weight: 800; cursor: pointer; }
+#recStart { background: var(--rec); color: #fff; }
+#recStop { background: var(--ink); color: var(--bg); }
+.rec button:disabled { opacity: .4; cursor: default; }
+.rec .info { font: 600 15px var(--mono); color: var(--muted); }
+.log { font: 13px var(--mono); color: var(--muted); max-height: 140px; overflow: auto; white-space: pre-wrap; }
+.conn { font-size: 13px; color: var(--muted); }
+.conn.off { color: var(--bad); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1 id="title">Pre-flight</h1>
+    <span class="conn off" id="conn">connecting…</span>
+    <div class="ready" id="ready">Not ready</div>
+  </header>
+
+  <section class="card">
+    <h2>Recording</h2>
+    <div class="rec">
+      <button id="recStart">● Start REC for everyone</button>
+      <button id="recStop" disabled>■ Stop</button>
+      <span class="info" id="recInfo">idle</span>
+    </div>
+    <p class="conn" style="margin:10px 0 0">Start OBS recording first, then press Start: every phone counts 3-2-1, then the OBS deck beeps and flashes once (the sync clap). Files go to recordings/&lt;session&gt;/.</p>
+  </section>
+
+  <section class="card">
+    <h2>Checks</h2>
+    <div class="checks" id="checks"></div>
+  </section>
+
+  <section class="card">
+    <h2>Speakers</h2>
+    <table>
+      <thead><tr><th>#</th><th>Speaker</th><th>Phone</th><th>Mic</th><th>Level</th><th>Headphones</th><th>Battery</th><th>Clock</th><th>Recording</th><th>Last upload</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </section>
+
+  <section class="card">
+    <h2>Events</h2>
+    <div class="log" id="log"></div>
+  </section>
+</main>
+
+<script>
+const DATA = __DATA__;
+const q = new URLSearchParams(location.search);
+const key = q.get("k") || "", lead = q.get("lead") || "";
+const $ = (id) => document.getElementById(id);
+$("title").textContent = (DATA.title || "Deck") + " · pre-flight";
+document.title = $("title").textContent;
+const levels = {};      // part -> { v, at }
+let status = null, sock = null;
+const media = {};       // file -> { ok, size }
+
+// media files: a HEAD request each, through the same server the decks use
+async function checkMedia(list) {
+  for (const f of list) {
+    if (media[f]) continue;
+    media[f] = { ok: null };
+    try {
+      const r = await fetch("/media/" + encodeURIComponent(f), { method: "HEAD", cache: "no-store" });
+      media[f] = { ok: r.ok && r.headers.get("accept-ranges") === "bytes", size: Number(r.headers.get("content-length")) };
+    } catch { media[f] = { ok: false }; }
+  }
+  render();
+}
+checkMedia(DATA.media || []);
+
+function log(text) {
+  const d = new Date();
+  $("log").textContent = `${d.toTimeString().slice(0, 8)}  ${text}\n` + $("log").textContent;
+}
+
+const pill = (text, cls) => `<span class="pill ${cls}">${text}</span>`;
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const fmtAge = (ms) => ms == null ? "—" : ms < 1000 ? "now" : `${Math.round(ms / 1000)} s ago`;
+const kb = (b) => b > 1e6 ? (b / 1e6).toFixed(1) + " MB" : Math.round(b / 1e3) + " kB";
+
+function render() {
+  const open = sock && sock.readyState === 1;
+  $("conn").textContent = open ? "connected" : "reconnecting…";
+  $("conn").className = "conn" + (open ? "" : " off");
+  if (!status) return;
+  const s = status, rec = s.rec || { state: "idle" };
+  const recOn = rec.state === "countdown" || rec.state === "recording";
+
+  // required checks decide "Ready"; optional ones only warn
+  const sp = s.speakers;
+  const checks = [
+    { ok: s.lead.keySet && s.lead.decks > 0, req: true, text: "Lead deck open", note: s.lead.decks ? "" : "open your lead link" },
+    { ok: s.decks.obs > 0, req: true, text: "OBS deck connected", note: s.decks.obs ? `${s.decks.obs}` : "add the OBS link as a Browser source" },
+    { ok: s.scenes.count > 0 && !s.scenes.orphans.length, req: false, text: "Scenes and speakers", note: `${s.scenes.count} scenes (${s.scenes.source})${s.scenes.orphans.length ? ", no speaker: " + s.scenes.orphans.join(", ") : ""}` },
+    { ok: sp.every((x) => x.connected), req: true, text: "Every speaker's phone connected", note: `${sp.filter((x) => x.connected).length}/${sp.length}` },
+    { ok: sp.every((x) => x.mic === "granted" && x.micOn), req: true, text: "Every microphone allowed and on", note: sp.filter((x) => !(x.mic === "granted" && x.micOn)).map((x) => x.name).join(", ") },
+    { ok: sp.every((x) => x.headphones), req: true, text: "Headphones on, call on the laptop", note: sp.filter((x) => !x.headphones).map((x) => x.name).join(", ") },
+    { ok: sp.every((x) => x.battery == null || x.battery >= 30 || x.charging), req: false, text: "Phone batteries ≥ 30% or charging", note: sp.filter((x) => x.battery != null && x.battery < 30 && !x.charging).map((x) => `${x.name} ${x.battery}%`).join(", ") },
+    { ok: s.decks.followers - s.decks.obs >= 0, req: false, text: "Viewer decks", note: `${Math.max(0, s.decks.followers - s.decks.obs)} following the lead` },
+  ];
+  const files = Object.keys(media);
+  if (files.length) checks.push({ ok: files.every((f) => media[f].ok), req: true, text: "Media files reachable (with seeking)", note: files.map((f) => `${f}${media[f].ok ? " ✓" : media[f].ok === null ? " …" : " ✗"}`).join(", ") });
+  $("checks").innerHTML = checks.map((c) => `<div class="check ${c.ok ? "ok" : c.req ? "no" : "opt"}"><b>${c.ok ? "✓" : c.req ? "✗" : "!"}</b><span>${esc(c.text)} <small>${esc(c.note || "")}</small></span></div>`).join("");
+  const ready = checks.filter((c) => c.req).every((c) => c.ok);
+  $("ready").className = "ready" + (recOn ? " rec" : ready ? " go" : "");
+  $("ready").textContent = recOn ? (rec.state === "countdown" ? "REC in 3…" : "● REC") : ready ? "READY" : "Not ready";
+
+  const now = Date.now();
+  $("rows").innerHTML = sp.map((x) => {
+    const lv = levels[x.part] && now - levels[x.part].at < 1500 ? levels[x.part].v : 0;
+    const mic = x.mic === "granted" ? (x.micOn ? pill("on", "good") : pill("allowed, off", "warn")) : x.mic === "denied" ? pill("blocked", "bad") : pill(x.mic, "warn");
+    const age = x.lastChunkAgeMs;
+    // during a take a chunk comes every ~5 s: older than 12 s means this phone stopped uploading
+    const up = !recOn && age == null ? "—" : age == null ? pill("nothing yet", rec.state === "recording" ? "bad" : "warn")
+      : pill(`${fmtAge(age)} · ${kb(x.bytes)}${x.takes > 1 ? ` · ${x.takes} takes` : ""}`, recOn && age > 12000 ? "bad" : recOn && age > 7000 ? "warn" : "good");
+    const recCell = !recOn ? (x.takes ? pill(`${x.takes} take${x.takes > 1 ? "s" : ""}`, "good") : "—")
+      : x.hidden ? pill("LEFT THE PAGE", "bad") : x.recording ? pill(`REC${x.queue > 1 ? ` · ${x.queue} queued` : ""}`, "good") : pill("not recording", "bad");
+    return `<tr>
+      <td>${x.part}</td><td class="n">${esc(x.name)}</td>
+      <td>${x.connected ? pill(x.phones > 1 ? `${x.phones} phones` : "connected", x.phones > 1 ? "warn" : "good") : pill("offline", "bad")}</td>
+      <td>${mic}</td>
+      <td><div class="meter"><i style="width:${Math.round(lv * 100)}%"></i></div></td>
+      <td>${x.headphones ? pill("yes", "good") : pill("not confirmed", "bad")}</td>
+      <td>${x.battery == null ? "—" : pill(`${x.battery}%${x.charging ? " ⚡" : ""}`, x.battery < 30 && !x.charging ? "bad" : "good")}</td>
+      <td>${x.rttMs == null ? "—" : `rtt ${x.rttMs} ms`}</td>
+      <td>${recCell}</td><td>${up}</td></tr>`;
+  }).join("");
+
+  $("recStart").disabled = !open || recOn;
+  $("recStop").disabled = !open || !recOn;
+  const el = rec.at ? Math.max(0, Math.floor((now - (rec.beepAt || rec.at)) / 1000)) : 0;
+  $("recInfo").textContent = rec.state === "idle" ? "idle"
+    : rec.state === "stopped" ? `stopped · session ${rec.session}`
+    : `${rec.state} · session ${rec.session} · ${Math.floor(el / 60)}:${String(el % 60).padStart(2, "0")}`;
+}
+
+$("recStart").onclick = () => {
+  if (!status) return;
+  const notReady = $("ready").textContent !== "READY";
+  if (notReady && !confirm("Not every check passed. Start the recording anyway?")) return;
+  sock.send(JSON.stringify({ type: "rec", action: "start" }));
+};
+$("recStop").onclick = () => { if (confirm("Stop the recording for everyone?")) sock.send(JSON.stringify({ type: "rec", action: "stop" })); };
+
+function connect() {
+  sock = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws?role=console&k=${encodeURIComponent(key)}&lead=${encodeURIComponent(lead)}`);
+  sock.onopen = render;
+  sock.onmessage = (e) => {
+    let m; try { m = JSON.parse(e.data); } catch { return; }
+    if (m.type === "status") { status = m; checkMedia(m.media || []); }
+    else if (m.type === "level") { levels[m.part] = { v: m.v, at: Date.now() }; }
+    else if (m.type === "rec") { log(`REC ${m.state}${m.session ? " · " + m.session : ""}`); if (status) status.rec = m; }
+    else if (m.type === "gap") { const n = status?.speakers.find((x) => x.part === m.part)?.name ?? m.part; log(`${n}: ${m.state === "hidden" ? "LEFT the remote page during REC" : "came back, recording resumed"}`); }
+    render();
+  };
+  sock.onclose = () => { render(); setTimeout(connect, 1500); };
+}
+setInterval(render, 250);   // the level meters
+connect();
+</script>
+</body>
+</html>

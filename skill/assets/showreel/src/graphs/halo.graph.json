@@ -1,0 +1,430 @@
+{
+  "$comment": "Halo (fictional): same-day delivery platform. Levels: context → system (containers) → routing (components); tenancy for the tenant kit.",
+  "context": {
+    "title": "Halo · system context",
+    "direction": "RIGHT",
+    "spacing": 110,
+    "nodes": [
+      {
+        "id": "merchant",
+        "title": "Merchant",
+        "sub": "shops · warehouses",
+        "icon": "store",
+        "tone": "entry"
+      },
+      {
+        "id": "courier",
+        "title": "Courier",
+        "sub": "phone app",
+        "icon": "truck",
+        "tone": "entry"
+      },
+      {
+        "id": "halo",
+        "title": "Halo",
+        "sub": "the platform we build",
+        "icon": "route",
+        "tone": "core",
+        "w": 360,
+        "h": 150,
+        "inside": "system"
+      },
+      {
+        "id": "maps",
+        "title": "Maps API",
+        "sub": "roads · traffic",
+        "icon": "globe",
+        "tone": "external"
+      },
+      {
+        "id": "sms",
+        "title": "SMS gateway",
+        "sub": "customer updates",
+        "icon": "message",
+        "tone": "external"
+      }
+    ],
+    "edges": [
+      {
+        "from": "merchant",
+        "to": "halo",
+        "label": "orders"
+      },
+      {
+        "from": "courier",
+        "to": "halo",
+        "label": "location"
+      },
+      {
+        "from": "halo",
+        "to": "maps",
+        "label": "routes"
+      },
+      {
+        "from": "halo",
+        "to": "sms",
+        "label": "notifies"
+      }
+    ]
+  },
+  "system": {
+    "title": "Halo · containers",
+    "direction": "RIGHT",
+    "spacing": 56,
+    "size": "sm",
+    "nodes": [
+      {
+        "id": "web",
+        "title": "Merchant web",
+        "sub": "React",
+        "icon": "react",
+        "tone": "entry",
+        "group": "clients"
+      },
+      {
+        "id": "app",
+        "title": "Courier app",
+        "sub": "iOS · Android",
+        "icon": "smartphone",
+        "tone": "entry",
+        "group": "clients"
+      },
+      {
+        "id": "gw",
+        "title": "API gateway",
+        "sub": "auth · limits",
+        "icon": "nginx",
+        "tone": "core"
+      },
+      {
+        "id": "orders",
+        "title": "Orders",
+        "sub": "Go service",
+        "icon": "go",
+        "group": "services"
+      },
+      {
+        "id": "routing",
+        "title": "Routing",
+        "sub": "Go service",
+        "icon": "route",
+        "group": "services",
+        "inside": "routing"
+      },
+      {
+        "id": "tracking",
+        "title": "Tracking",
+        "sub": "Go service",
+        "icon": "activity",
+        "group": "services"
+      },
+      {
+        "id": "pg",
+        "title": "PostgreSQL",
+        "sub": "orders · tenants",
+        "icon": "postgres",
+        "tone": "store"
+      },
+      {
+        "id": "redis",
+        "title": "Redis",
+        "sub": "courier positions",
+        "icon": "redis",
+        "tone": "store"
+      },
+      {
+        "id": "queue",
+        "title": "Queue",
+        "sub": "RabbitMQ",
+        "icon": "rabbitmq",
+        "tone": "queue"
+      },
+      {
+        "id": "notify",
+        "title": "Notifier",
+        "sub": "worker",
+        "icon": "bell",
+        "pin": {
+          "below": "queue",
+          "gap": 40
+        }
+      },
+      {
+        "id": "maps",
+        "title": "Maps API",
+        "sub": "external",
+        "icon": "globe",
+        "tone": "external",
+        "pin": {
+          "below": "redis",
+          "gap": 40
+        }
+      }
+    ],
+    "groups": [
+      {
+        "id": "clients",
+        "title": "Clients",
+        "layout": "free"
+      },
+      {
+        "id": "services",
+        "title": "Services",
+        "layout": "free"
+      }
+    ],
+    "edges": [
+      {
+        "from": "web",
+        "to": "gw"
+      },
+      {
+        "from": "app",
+        "to": "gw"
+      },
+      {
+        "from": "gw",
+        "to": "orders",
+        "label": "REST"
+      },
+      {
+        "from": "gw",
+        "to": "tracking",
+        "label": "WS"
+      },
+      {
+        "from": "orders",
+        "to": "routing",
+        "label": "gRPC"
+      },
+      {
+        "from": "orders",
+        "to": "pg"
+      },
+      {
+        "from": "routing",
+        "to": "maps"
+      },
+      {
+        "from": "tracking",
+        "to": "redis"
+      },
+      {
+        "from": "orders",
+        "to": "queue",
+        "dashed": true
+      },
+      {
+        "from": "queue",
+        "to": "notify",
+        "dashed": true
+      }
+    ],
+    "flows": {
+      "order": {
+        "title": "One order",
+        "path": [
+          "web",
+          "gw: POST /orders",
+          "orders: create",
+          "pg: INSERT",
+          "<orders",
+          "routing: plan",
+          "maps: ETA",
+          "<routing: route",
+          "<orders",
+          "<gw: 201",
+          "<web: 201 Created"
+        ]
+      },
+      "notify": {
+        "title": "Then, async",
+        "color": "accent",
+        "path": [
+          "orders",
+          {
+            "to": "queue",
+            "label": "order.routed",
+            "async": true
+          },
+          "notify: SMS"
+        ]
+      }
+    }
+  },
+  "routing": {
+    "title": "Routing service · components",
+    "direction": "RIGHT",
+    "spacing": 90,
+    "nodes": [
+      {
+        "id": "r-grpc",
+        "title": "gRPC handler",
+        "sub": "PlanRoute",
+        "icon": "route",
+        "tone": "entry"
+      },
+      {
+        "id": "r-cluster",
+        "title": "Clusterer",
+        "sub": "stops by area",
+        "icon": "layers",
+        "group": "core"
+      },
+      {
+        "id": "r-solve",
+        "title": "Solver",
+        "sub": "time windows",
+        "icon": "cpu",
+        "group": "core"
+      },
+      {
+        "id": "r-eta",
+        "title": "ETA model",
+        "sub": "traffic aware",
+        "icon": "timer",
+        "group": "core"
+      },
+      {
+        "id": "r-cache",
+        "title": "Route cache",
+        "sub": "Redis",
+        "icon": "redis",
+        "tone": "store"
+      },
+      {
+        "id": "r-maps",
+        "title": "Maps API",
+        "sub": "external",
+        "icon": "globe",
+        "tone": "ghost"
+      }
+    ],
+    "groups": [
+      {
+        "id": "core",
+        "title": "Inside one plan",
+        "layout": "column"
+      }
+    ],
+    "edges": [
+      {
+        "from": "r-grpc",
+        "to": "core"
+      },
+      {
+        "id": "core-cache",
+        "from": "core",
+        "to": "r-cache",
+        "hot": true
+      },
+      {
+        "id": "core-maps",
+        "from": "core",
+        "to": "r-maps",
+        "dashed": true
+      }
+    ],
+    "flows": {
+      "plan": {
+        "title": "One plan",
+        "path": [
+          "r-grpc",
+          {
+            "to": "core",
+            "light": true
+          },
+          "r-cache",
+          "<core",
+          "r-maps"
+        ]
+      }
+    }
+  },
+  "tenancy": {
+    "title": "Two merchants, one table",
+    "direction": "RIGHT",
+    "spacing": 96,
+    "size": "sm",
+    "nodes": [
+      {
+        "id": "ma",
+        "title": "Nomad Books",
+        "sub": "merchant A",
+        "icon": "store",
+        "tone": "entry"
+      },
+      {
+        "id": "mb",
+        "title": "Steppe Flowers",
+        "sub": "merchant B",
+        "icon": "store",
+        "tone": "entry"
+      },
+      {
+        "id": "tgw",
+        "title": "API gateway",
+        "sub": "token → tenant_id",
+        "icon": "nginx",
+        "tone": "core"
+      },
+      {
+        "id": "torders",
+        "title": "Orders",
+        "sub": "Go service",
+        "icon": "go"
+      },
+      {
+        "id": "tpg",
+        "title": "PostgreSQL",
+        "sub": "row-level security",
+        "icon": "postgres",
+        "tone": "store"
+      }
+    ],
+    "edges": [
+      {
+        "from": "ma",
+        "to": "tgw"
+      },
+      {
+        "from": "mb",
+        "to": "tgw"
+      },
+      {
+        "from": "tgw",
+        "to": "torders"
+      },
+      {
+        "from": "torders",
+        "to": "tpg"
+      }
+    ],
+    "flows": {
+      "a": {
+        "title": "Merchant A",
+        "path": [
+          "ma",
+          "tgw",
+          "torders",
+          "tpg: SELECT orders",
+          "<torders",
+          "<tgw",
+          "<ma"
+        ]
+      },
+      "b": {
+        "title": "Merchant B",
+        "path": [
+          "mb",
+          "tgw",
+          "torders",
+          "tpg: SELECT orders",
+          "<torders",
+          "<tgw",
+          "<mb"
+        ]
+      }
+    }
+  }
+}

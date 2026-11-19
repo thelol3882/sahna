@@ -1,0 +1,17 @@
+{
+  "title": "Team Atlas: final demo",
+  "port": 8787,
+  "startScene": "cover",
+  "mediaDir": "media",
+  "speakers": [
+    { "part": 1, "name": "Alex" },
+    { "part": 2, "name": "Sam" },
+    { "part": 3, "name": "Kim" }
+  ],
+  "recording": {
+    "chunkMs": 5000,
+    "bitrate": 128000,
+    "countdownMs": 3000,
+    "processing": false
+  }
+}

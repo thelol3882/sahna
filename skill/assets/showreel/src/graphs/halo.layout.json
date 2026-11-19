@@ -1,0 +1,1153 @@
+{
+ "$generated": "by scripts/layout.mjs from halo.graph.json — do not edit",
+ "metrics": {
+  "lg": {
+   "title": 26,
+   "sub": 20,
+   "icon": 52,
+   "pad": 22,
+   "gap": 16
+  },
+  "sm": {
+   "title": 22,
+   "sub": 20,
+   "icon": 40,
+   "pad": 16,
+   "gap": 12
+  }
+ },
+ "graphs": {
+  "context": {
+   "title": "Halo · system context",
+   "direction": "RIGHT",
+   "width": 1636,
+   "height": 276,
+   "nodes": [
+    {
+     "id": "merchant",
+     "title": "Merchant",
+     "sub": "shops · warehouses",
+     "icon": "store",
+     "tone": "entry",
+     "size": "lg",
+     "attach": "merchant",
+     "x": 12,
+     "y": 12,
+     "w": 314,
+     "h": 104
+    },
+    {
+     "id": "courier",
+     "title": "Courier",
+     "sub": "phone app",
+     "icon": "truck",
+     "tone": "entry",
+     "size": "lg",
+     "attach": "courier",
+     "x": 26,
+     "y": 160,
+     "w": 300,
+     "h": 104
+    },
+    {
+     "id": "halo",
+     "title": "Halo",
+     "sub": "the platform we build",
+     "icon": "route",
+     "tone": "core",
+     "w": 360,
+     "h": 150,
+     "inside": "system",
+     "size": "lg",
+     "attach": "halo",
+     "x": 643,
+     "y": 14
+    },
+    {
+     "id": "maps",
+     "title": "Maps API",
+     "sub": "roads · traffic",
+     "icon": "globe",
+     "tone": "external",
+     "size": "lg",
+     "attach": "maps",
+     "x": 1316,
+     "y": 12,
+     "w": 300,
+     "h": 104
+    },
+    {
+     "id": "sms",
+     "title": "SMS gateway",
+     "sub": "customer updates",
+     "icon": "message",
+     "tone": "external",
+     "size": "lg",
+     "attach": "sms",
+     "x": 1316,
+     "y": 160,
+     "w": 308,
+     "h": 104
+    }
+   ],
+   "groups": [],
+   "edges": [
+    {
+     "from": "merchant",
+     "to": "halo",
+     "label": "orders",
+     "id": "merchant-halo",
+     "points": [
+      [
+       326,
+       64
+      ],
+      [
+       643,
+       64
+      ]
+     ],
+     "labelBox": {
+      "x": 444,
+      "y": 25,
+      "w": 82,
+      "h": 32
+     }
+    },
+    {
+     "from": "courier",
+     "to": "halo",
+     "label": "location",
+     "id": "courier-halo",
+     "points": [
+      [
+       326,
+       212
+      ],
+      [
+       352,
+       212
+      ],
+      [
+       352,
+       114
+      ],
+      [
+       643,
+       114
+      ]
+     ],
+     "labelBox": {
+      "x": 436,
+      "y": 121,
+      "w": 97,
+      "h": 32
+     }
+    },
+    {
+     "from": "halo",
+     "to": "maps",
+     "label": "routes",
+     "id": "halo-maps",
+     "points": [
+      [
+       1003,
+       64
+      ],
+      [
+       1316,
+       64
+      ]
+     ],
+     "labelBox": {
+      "x": 1119,
+      "y": 25,
+      "w": 82,
+      "h": 32
+     }
+    },
+    {
+     "from": "halo",
+     "to": "sms",
+     "label": "notifies",
+     "id": "halo-sms",
+     "points": [
+      [
+       1003,
+       114
+      ],
+      [
+       1232,
+       114
+      ],
+      [
+       1232,
+       212
+      ],
+      [
+       1316,
+       212
+      ]
+     ],
+     "labelBox": {
+      "x": 1113,
+      "y": 121,
+      "w": 93,
+      "h": 32
+     }
+    }
+   ],
+   "flows": {}
+  },
+  "system": {
+   "title": "Halo · containers",
+   "direction": "RIGHT",
+   "width": 1734,
+   "height": 492,
+   "nodes": [
+    {
+     "id": "web",
+     "title": "Merchant web",
+     "sub": "React",
+     "icon": "react",
+     "tone": "entry",
+     "group": "clients",
+     "size": "sm",
+     "attach": "web",
+     "x": 30,
+     "y": 68,
+     "w": 253,
+     "h": 84
+    },
+    {
+     "id": "app",
+     "title": "Courier app",
+     "sub": "iOS · Android",
+     "icon": "smartphone",
+     "tone": "entry",
+     "group": "clients",
+     "size": "sm",
+     "attach": "app",
+     "x": 53,
+     "y": 172,
+     "w": 230,
+     "h": 84
+    },
+    {
+     "id": "gw",
+     "title": "API gateway",
+     "sub": "auth · limits",
+     "icon": "nginx",
+     "tone": "core",
+     "size": "sm",
+     "attach": "gw",
+     "x": 362,
+     "y": 158,
+     "w": 237,
+     "h": 84
+    },
+    {
+     "id": "orders",
+     "title": "Orders",
+     "sub": "Go service",
+     "icon": "go",
+     "group": "services",
+     "tone": "default",
+     "size": "sm",
+     "attach": "orders",
+     "x": 812,
+     "y": 144,
+     "w": 230,
+     "h": 84
+    },
+    {
+     "id": "routing",
+     "title": "Routing",
+     "sub": "Go service",
+     "icon": "route",
+     "group": "services",
+     "inside": "routing",
+     "tone": "default",
+     "size": "sm",
+     "attach": "routing",
+     "x": 1158,
+     "y": 197,
+     "w": 230,
+     "h": 84
+    },
+    {
+     "id": "tracking",
+     "title": "Tracking",
+     "sub": "Go service",
+     "icon": "activity",
+     "group": "services",
+     "tone": "default",
+     "size": "sm",
+     "attach": "tracking",
+     "x": 812,
+     "y": 249,
+     "w": 230,
+     "h": 84
+    },
+    {
+     "id": "pg",
+     "title": "PostgreSQL",
+     "sub": "orders · tenants",
+     "icon": "postgres",
+     "tone": "store",
+     "size": "sm",
+     "attach": "pg",
+     "x": 1467,
+     "y": 16,
+     "w": 244,
+     "h": 84
+    },
+    {
+     "id": "redis",
+     "title": "Redis",
+     "sub": "courier positions",
+     "icon": "redis",
+     "tone": "store",
+     "size": "sm",
+     "attach": "redis",
+     "x": 1467,
+     "y": 272,
+     "w": 255,
+     "h": 84
+    },
+    {
+     "id": "queue",
+     "title": "Queue",
+     "sub": "RabbitMQ",
+     "icon": "rabbitmq",
+     "tone": "queue",
+     "size": "sm",
+     "attach": "queue",
+     "x": 1467,
+     "y": 144,
+     "w": 230,
+     "h": 84
+    },
+    {
+     "id": "notify",
+     "title": "Notifier",
+     "sub": "worker",
+     "icon": "bell",
+     "tone": "default",
+     "size": "sm",
+     "attach": "notify",
+     "x": 1467,
+     "y": 268,
+     "w": 230,
+     "h": 84
+    },
+    {
+     "id": "maps",
+     "title": "Maps API",
+     "sub": "external",
+     "icon": "globe",
+     "tone": "external",
+     "size": "sm",
+     "attach": "maps",
+     "x": 1480,
+     "y": 396,
+     "w": 230,
+     "h": 84
+    }
+   ],
+   "groups": [
+    {
+     "id": "clients",
+     "title": "Clients",
+     "layout": "free",
+     "members": [
+      "web",
+      "app"
+     ],
+     "x": 12,
+     "y": 12,
+     "w": 289,
+     "h": 262
+    },
+    {
+     "id": "services",
+     "title": "Services",
+     "layout": "free",
+     "members": [
+      "orders",
+      "routing",
+      "tracking"
+     ],
+     "x": 794,
+     "y": 88,
+     "w": 612,
+     "h": 263
+    }
+   ],
+   "edges": [
+    {
+     "from": "web",
+     "to": "gw",
+     "id": "web-gw",
+     "points": [
+      [
+       283,
+       110
+      ],
+      [
+       332,
+       110
+      ],
+      [
+       332,
+       186
+      ],
+      [
+       362,
+       186
+      ]
+     ]
+    },
+    {
+     "from": "app",
+     "to": "gw",
+     "id": "app-gw",
+     "points": [
+      [
+       283,
+       214
+      ],
+      [
+       362,
+       214
+      ]
+     ]
+    },
+    {
+     "from": "gw",
+     "to": "orders",
+     "label": "REST",
+     "id": "gw-orders",
+     "points": [
+      [
+       599,
+       186
+      ],
+      [
+       812,
+       186
+      ]
+     ],
+     "labelBox": {
+      "x": 655,
+      "y": 147,
+      "w": 78,
+      "h": 32
+     }
+    },
+    {
+     "from": "gw",
+     "to": "tracking",
+     "label": "WS",
+     "id": "gw-tracking",
+     "points": [
+      [
+       599,
+       214
+      ],
+      [
+       759,
+       214
+      ],
+      [
+       759,
+       291
+      ],
+      [
+       812,
+       291
+      ]
+     ],
+     "labelBox": {
+      "x": 666,
+      "y": 221,
+      "w": 56,
+      "h": 32
+     }
+    },
+    {
+     "from": "orders",
+     "to": "routing",
+     "label": "gRPC",
+     "id": "orders-routing",
+     "points": [
+      [
+       1042,
+       207
+      ],
+      [
+       1052,
+       207
+      ],
+      [
+       1052,
+       239
+      ],
+      [
+       1158,
+       239
+      ]
+     ],
+     "labelBox": {
+      "x": 1062,
+      "y": 242,
+      "w": 76,
+      "h": 32
+     }
+    },
+    {
+     "from": "orders",
+     "to": "pg",
+     "id": "orders-pg",
+     "points": [
+      [
+       1042,
+       165
+      ],
+      [
+       1437,
+       165
+      ],
+      [
+       1437,
+       58
+      ],
+      [
+       1467,
+       58
+      ]
+     ]
+    },
+    {
+     "from": "routing",
+     "to": "maps",
+     "id": "routing-maps",
+     "points": [
+      [
+       1273,
+       281
+      ],
+      [
+       1273,
+       339
+      ],
+      [
+       1595,
+       339
+      ],
+      [
+       1595,
+       396
+      ]
+     ]
+    },
+    {
+     "from": "tracking",
+     "to": "redis",
+     "id": "tracking-redis",
+     "points": [
+      [
+       1042,
+       291
+      ],
+      [
+       1437,
+       291
+      ],
+      [
+       1437,
+       314
+      ],
+      [
+       1467,
+       314
+      ]
+     ]
+    },
+    {
+     "from": "orders",
+     "to": "queue",
+     "dashed": true,
+     "id": "orders-queue",
+     "points": [
+      [
+       1042,
+       186
+      ],
+      [
+       1467,
+       186
+      ]
+     ]
+    },
+    {
+     "from": "queue",
+     "to": "notify",
+     "dashed": true,
+     "id": "queue-notify",
+     "points": [
+      [
+       1582,
+       228
+      ],
+      [
+       1582,
+       268
+      ]
+     ]
+    }
+   ],
+   "flows": {
+    "order": {
+     "title": "One order",
+     "start": "web",
+     "hops": [
+      {
+       "from": "web",
+       "to": "gw",
+       "edge": "web-gw",
+       "rev": false,
+       "label": "POST /orders"
+      },
+      {
+       "from": "gw",
+       "to": "orders",
+       "edge": "gw-orders",
+       "rev": false,
+       "label": "create"
+      },
+      {
+       "from": "orders",
+       "to": "pg",
+       "edge": "orders-pg",
+       "rev": false,
+       "label": "INSERT"
+      },
+      {
+       "from": "pg",
+       "to": "orders",
+       "edge": "orders-pg",
+       "rev": true,
+       "reply": true
+      },
+      {
+       "from": "orders",
+       "to": "routing",
+       "edge": "orders-routing",
+       "rev": false,
+       "label": "plan"
+      },
+      {
+       "from": "routing",
+       "to": "maps",
+       "edge": "routing-maps",
+       "rev": false,
+       "label": "ETA"
+      },
+      {
+       "from": "maps",
+       "to": "routing",
+       "edge": "routing-maps",
+       "rev": true,
+       "label": "route",
+       "reply": true
+      },
+      {
+       "from": "routing",
+       "to": "orders",
+       "edge": "orders-routing",
+       "rev": true,
+       "reply": true
+      },
+      {
+       "from": "orders",
+       "to": "gw",
+       "edge": "gw-orders",
+       "rev": true,
+       "label": "201",
+       "reply": true
+      },
+      {
+       "from": "gw",
+       "to": "web",
+       "edge": "web-gw",
+       "rev": true,
+       "label": "201 Created",
+       "reply": true
+      }
+     ]
+    },
+    "notify": {
+     "title": "Then, async",
+     "color": "accent",
+     "start": "orders",
+     "hops": [
+      {
+       "from": "orders",
+       "to": "queue",
+       "edge": "orders-queue",
+       "rev": false,
+       "label": "order.routed",
+       "async": true
+      },
+      {
+       "from": "queue",
+       "to": "notify",
+       "edge": "queue-notify",
+       "rev": false,
+       "label": "SMS"
+      }
+     ]
+    }
+   }
+  },
+  "routing": {
+   "title": "Routing service · components",
+   "direction": "RIGHT",
+   "width": 1072,
+   "height": 366,
+   "nodes": [
+    {
+     "id": "r-grpc",
+     "title": "gRPC handler",
+     "sub": "PlanRoute",
+     "icon": "route",
+     "tone": "entry",
+     "size": "lg",
+     "attach": "r-grpc",
+     "x": 12,
+     "y": 131,
+     "w": 302,
+     "h": 104
+    },
+    {
+     "id": "r-cluster",
+     "title": "Clusterer",
+     "sub": "stops by area",
+     "icon": "layers",
+     "group": "core",
+     "tone": "default",
+     "size": "sm",
+     "attach": "core",
+     "x": 422,
+     "y": 68,
+     "w": 230,
+     "h": 80
+    },
+    {
+     "id": "r-solve",
+     "title": "Solver",
+     "sub": "time windows",
+     "icon": "cpu",
+     "group": "core",
+     "tone": "default",
+     "size": "sm",
+     "attach": "core",
+     "x": 422,
+     "y": 162,
+     "w": 230,
+     "h": 80
+    },
+    {
+     "id": "r-eta",
+     "title": "ETA model",
+     "sub": "traffic aware",
+     "icon": "timer",
+     "group": "core",
+     "tone": "default",
+     "size": "sm",
+     "attach": "core",
+     "x": 422,
+     "y": 256,
+     "w": 230,
+     "h": 80
+    },
+    {
+     "id": "r-cache",
+     "title": "Route cache",
+     "sub": "Redis",
+     "icon": "redis",
+     "tone": "store",
+     "size": "lg",
+     "attach": "r-cache",
+     "x": 760,
+     "y": 74,
+     "w": 300,
+     "h": 104
+    },
+    {
+     "id": "r-maps",
+     "title": "Maps API",
+     "sub": "external",
+     "icon": "globe",
+     "tone": "ghost",
+     "size": "lg",
+     "attach": "r-maps",
+     "x": 760,
+     "y": 222,
+     "w": 300,
+     "h": 104
+    }
+   ],
+   "groups": [
+    {
+     "id": "core",
+     "title": "Inside one plan",
+     "layout": "column",
+     "members": [
+      "r-cluster",
+      "r-solve",
+      "r-eta"
+     ],
+     "x": 404,
+     "y": 12,
+     "w": 266,
+     "h": 342
+    }
+   ],
+   "edges": [
+    {
+     "from": "r-grpc",
+     "to": "core",
+     "id": "r-grpc-core",
+     "points": [
+      [
+       314,
+       183
+      ],
+      [
+       404,
+       183
+      ]
+     ]
+    },
+    {
+     "id": "core-cache",
+     "from": "core",
+     "to": "r-cache",
+     "hot": true,
+     "points": [
+      [
+       670,
+       126
+      ],
+      [
+       760,
+       126
+      ]
+     ]
+    },
+    {
+     "id": "core-maps",
+     "from": "core",
+     "to": "r-maps",
+     "dashed": true,
+     "points": [
+      [
+       670,
+       240
+      ],
+      [
+       696,
+       240
+      ],
+      [
+       696,
+       274
+      ],
+      [
+       760,
+       274
+      ]
+     ]
+    }
+   ],
+   "flows": {
+    "plan": {
+     "title": "One plan",
+     "start": "r-grpc",
+     "hops": [
+      {
+       "from": "r-grpc",
+       "to": "core",
+       "edge": "r-grpc-core",
+       "rev": false,
+       "light": [
+        "r-cluster",
+        "r-solve",
+        "r-eta"
+       ]
+      },
+      {
+       "from": "core",
+       "to": "r-cache",
+       "edge": "core-cache",
+       "rev": false
+      },
+      {
+       "from": "r-cache",
+       "to": "core",
+       "edge": "core-cache",
+       "rev": true,
+       "reply": true
+      },
+      {
+       "from": "core",
+       "to": "r-maps",
+       "edge": "core-maps",
+       "rev": false
+      }
+     ]
+    }
+   }
+  },
+  "tenancy": {
+   "title": "Two merchants, one table",
+   "direction": "RIGHT",
+   "width": 1345,
+   "height": 236,
+   "nodes": [
+    {
+     "id": "ma",
+     "title": "Nomad Books",
+     "sub": "merchant A",
+     "icon": "store",
+     "tone": "entry",
+     "size": "sm",
+     "attach": "ma",
+     "x": 38,
+     "y": 12,
+     "w": 247,
+     "h": 84
+    },
+    {
+     "id": "mb",
+     "title": "Steppe Flowers",
+     "sub": "merchant B",
+     "icon": "store",
+     "tone": "entry",
+     "size": "sm",
+     "attach": "mb",
+     "x": 12,
+     "y": 140,
+     "w": 273,
+     "h": 84
+    },
+    {
+     "id": "tgw",
+     "title": "API gateway",
+     "sub": "token → tenant_id",
+     "icon": "nginx",
+     "tone": "core",
+     "size": "sm",
+     "attach": "tgw",
+     "x": 381,
+     "y": 26,
+     "w": 260,
+     "h": 84
+    },
+    {
+     "id": "torders",
+     "title": "Orders",
+     "sub": "Go service",
+     "icon": "go",
+     "tone": "default",
+     "size": "sm",
+     "attach": "torders",
+     "x": 737,
+     "y": 26,
+     "w": 230,
+     "h": 84
+    },
+    {
+     "id": "tpg",
+     "title": "PostgreSQL",
+     "sub": "row-level security",
+     "icon": "postgres",
+     "tone": "store",
+     "size": "sm",
+     "attach": "tpg",
+     "x": 1063,
+     "y": 26,
+     "w": 270,
+     "h": 84
+    }
+   ],
+   "groups": [],
+   "edges": [
+    {
+     "from": "ma",
+     "to": "tgw",
+     "id": "ma-tgw",
+     "points": [
+      [
+       285,
+       54
+      ],
+      [
+       381,
+       54
+      ]
+     ]
+    },
+    {
+     "from": "mb",
+     "to": "tgw",
+     "id": "mb-tgw",
+     "points": [
+      [
+       285,
+       182
+      ],
+      [
+       311,
+       182
+      ],
+      [
+       311,
+       82
+      ],
+      [
+       381,
+       82
+      ]
+     ]
+    },
+    {
+     "from": "tgw",
+     "to": "torders",
+     "id": "tgw-torders",
+     "points": [
+      [
+       641,
+       68
+      ],
+      [
+       737,
+       68
+      ]
+     ]
+    },
+    {
+     "from": "torders",
+     "to": "tpg",
+     "id": "torders-tpg",
+     "points": [
+      [
+       967,
+       68
+      ],
+      [
+       1063,
+       68
+      ]
+     ]
+    }
+   ],
+   "flows": {
+    "a": {
+     "title": "Merchant A",
+     "start": "ma",
+     "hops": [
+      {
+       "from": "ma",
+       "to": "tgw",
+       "edge": "ma-tgw",
+       "rev": false
+      },
+      {
+       "from": "tgw",
+       "to": "torders",
+       "edge": "tgw-torders",
+       "rev": false
+      },
+      {
+       "from": "torders",
+       "to": "tpg",
+       "edge": "torders-tpg",
+       "rev": false,
+       "label": "SELECT orders"
+      },
+      {
+       "from": "tpg",
+       "to": "torders",
+       "edge": "torders-tpg",
+       "rev": true,
+       "reply": true
+      },
+      {
+       "from": "torders",
+       "to": "tgw",
+       "edge": "tgw-torders",
+       "rev": true,
+       "reply": true
+      },
+      {
+       "from": "tgw",
+       "to": "ma",
+       "edge": "ma-tgw",
+       "rev": true,
+       "reply": true
+      }
+     ]
+    },
+    "b": {
+     "title": "Merchant B",
+     "start": "mb",
+     "hops": [
+      {
+       "from": "mb",
+       "to": "tgw",
+       "edge": "mb-tgw",
+       "rev": false
+      },
+      {
+       "from": "tgw",
+       "to": "torders",
+       "edge": "tgw-torders",
+       "rev": false
+      },
+      {
+       "from": "torders",
+       "to": "tpg",
+       "edge": "torders-tpg",
+       "rev": false,
+       "label": "SELECT orders"
+      },
+      {
+       "from": "tpg",
+       "to": "torders",
+       "edge": "torders-tpg",
+       "rev": true,
+       "reply": true
+      },
+      {
+       "from": "torders",
+       "to": "tgw",
+       "edge": "tgw-torders",
+       "rev": true,
+       "reply": true
+      },
+      {
+       "from": "tgw",
+       "to": "mb",
+       "edge": "mb-tgw",
+       "rev": true,
+       "reply": true
+      }
+     ]
+    }
+   }
+  }
+ }
+}
