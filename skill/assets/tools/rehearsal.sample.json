@@ -1,0 +1,121 @@
+{
+ "deck": "Deck title",
+ "budget": 600,
+ "exported": "2026-11-19T10:05:21.131Z",
+ "scenes": [
+  {
+   "id": "cover",
+   "title": "Cover",
+   "seconds": 20,
+   "speaker": "a",
+   "steps": 0,
+   "appendix": false
+  },
+  {
+   "id": "results",
+   "title": "Pages load four times faster",
+   "seconds": 45,
+   "speaker": "b",
+   "steps": 2,
+   "appendix": false
+  },
+  {
+   "id": "backup-method",
+   "title": "How we measured the load time",
+   "seconds": null,
+   "speaker": null,
+   "steps": 0,
+   "appendix": true
+  }
+ ],
+ "speakers": [
+  {
+   "id": "a",
+   "name": "Speaker One"
+  },
+  {
+   "id": "b",
+   "name": "Speaker Two"
+  }
+ ],
+ "runs": [
+  {
+   "id": "2026-11-19T10:05:00.071Z",
+   "started": 1795082700071,
+   "ended": 1795082720548,
+   "segs": [
+    {
+     "i": 0,
+     "id": "cover",
+     "step": 0,
+     "t0": 1795082700071,
+     "ready": 1513,
+     "t1": 1795082702806
+    },
+    {
+     "i": 1,
+     "id": "results",
+     "step": 0,
+     "t0": 1795082702806,
+     "ready": 2146,
+     "t1": 1795082706580
+    },
+    {
+     "i": 1,
+     "id": "results",
+     "step": 1,
+     "t0": 1795082706580,
+     "ready": 1328,
+     "t1": 1795082709939
+    },
+    {
+     "i": 1,
+     "id": "results",
+     "step": 2,
+     "t0": 1795082709939,
+     "ready": 590,
+     "t1": 1795082720548
+    }
+   ]
+  },
+  {
+   "id": "synthetic-long",
+   "started": 1795082700071,
+   "ended": 1795082780548,
+   "segs": [
+    {
+     "i": 0,
+     "id": "cover",
+     "step": 0,
+     "t0": 1795082700071,
+     "ready": 1513,
+     "t1": 1795082702806
+    },
+    {
+     "i": 1,
+     "id": "results",
+     "step": 0,
+     "t0": 1795082702806,
+     "ready": 2146,
+     "t1": 1795082706580
+    },
+    {
+     "i": 1,
+     "id": "results",
+     "step": 1,
+     "t0": 1795082706580,
+     "ready": 1328,
+     "t1": 1795082709939
+    },
+    {
+     "i": 1,
+     "id": "results",
+     "step": 2,
+     "t0": 1795082709939,
+     "ready": 590,
+     "t1": 1795082780548
+    }
+   ]
+  }
+ ]
+}

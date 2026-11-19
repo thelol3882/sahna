@@ -1,0 +1,38 @@
+{
+  "lang": "en",
+  "eyebrow": "Course · Venue · November 2026",
+  "title": "Pages load four times faster",
+  "title_mark": "four times",
+  "subtitle": "What a cache layer changed for twelve thousand weekly users",
+  "speakers": "Speaker One · Speaker Two",
+  "footer": "TALK TITLE · VENUE · 2026",
+  "signature": {
+    "eyebrow": "How it works",
+    "title": "A request passes three gates",
+    "mark": "three gates",
+    "lead": "Every booking goes through the same path, so one slow gate explains the whole wait.",
+    "lead_mark": "one slow gate",
+    "window": "load-test · 200 users",
+    "command": "bench --users 200 --duration 10m",
+    "status": "210 ms",
+    "source": "Architecture notes, Oct 2026",
+    "points": [
+      {"k": "01", "title": "Gateway", "text": "Checks the request and queues it"},
+      {"k": "02", "title": "Hold", "text": "Locks the seat for 30 seconds"},
+      {"k": "03", "title": "Cache", "text": "Answers repeat reads from memory"}
+    ]
+  },
+  "data": {
+    "eyebrow": "Results",
+    "title": "The slowest pages got four times faster",
+    "mark": "four times",
+    "stat": "4×",
+    "stat_label": "faster at p95, same load",
+    "kicker": "12,480 weekly users",
+    "chart_label": "p95 page load",
+    "unit": "ms",
+    "bars": [{"label": "before", "value": 840}, {"label": "after", "value": 210}],
+    "callout": "Measured under the same replayed production day, three runs each.",
+    "source": "Load test, 3 Nov 2026"
+  }
+}
