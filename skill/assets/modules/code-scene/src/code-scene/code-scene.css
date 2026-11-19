@@ -1,0 +1,182 @@
+/* Code scene: block, token colours (light + dark), side panel.
+   Token colours are CSS variables written by the build-time highlighter (var(--cs-token-*)).
+   Override any --cs-* variable on .cs-root (or a parent) to match the deck's palette. */
+
+.cs-root {
+  /* mono ONLY for code. Pick a font that covers every character in the code (see README: fonts). */
+  --cs-font: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  --cs-bg: #FBFAF8;
+  --cs-head-bg: #F1EEEA;
+  --cs-border: #DCD8D2;
+  --cs-gutter: #757069;
+  --cs-focus-bg: rgb(55 87 159 / 0.09);
+  --cs-focus-edge: #37579F;
+  --cs-run-bg: rgb(224 122 58 / 0.14);
+  --cs-run: #E07A3A;
+  --cs-add-bg: rgb(26 140 74 / 0.13);
+  --cs-add: #1A8C4A;
+  --cs-del-bg: rgb(205 45 45 / 0.14);
+  --cs-del: #C62828;
+  --cs-ann-bg: #1B2A4A;
+  --cs-ann-fg: #FFFFFF;
+  --cs-caret: #37579F;
+  --cs-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 12px 32px rgb(27 25 21 / 0.08);
+
+  /* syntax tokens, light (GitHub-light-like, all ≥ 4.5:1 on --cs-bg) */
+  --cs-foreground: #24292F;
+  --cs-background: transparent;
+  --cs-token-keyword: #CF222E;
+  --cs-token-constant: #0550AE;
+  --cs-token-string: #0A3069;
+  --cs-token-string-expression: #116329;
+  --cs-token-comment: #6E7781;
+  --cs-token-function: #8250DF;
+  --cs-token-parameter: #953800;
+  --cs-token-punctuation: #24292F;
+  --cs-token-link: #0550AE;
+  --cs-token-inserted: #116329;
+  --cs-token-deleted: #82071E;
+  --cs-token-changed: #953800;
+  --cs-ansi-black: #24292F;
+}
+
+.cs-root[data-theme="dark"],
+:where(.dark, .hero) .cs-root[data-theme="auto"] {
+  --cs-bg: #0F1626;
+  --cs-head-bg: #172036;
+  --cs-border: #26324D;
+  --cs-gutter: #8F9BB8;
+  --cs-focus-bg: rgb(168 187 225 / 0.10);
+  --cs-focus-edge: #A8BBE1;
+  --cs-run-bg: rgb(247 169 124 / 0.16);
+  --cs-run: #F7A97C;
+  --cs-add-bg: rgb(63 185 80 / 0.16);
+  --cs-add: #56D364;
+  --cs-del-bg: rgb(248 81 73 / 0.16);
+  --cs-del: #FF7B72;
+  --cs-ann-bg: #A8BBE1;
+  --cs-ann-fg: #0C1A38;
+  --cs-caret: #A8BBE1;
+  --cs-shadow: 0 12px 40px rgb(0 0 0 / 0.35);
+
+  --cs-foreground: #E6EDF3;
+  --cs-token-keyword: #FF7B72;
+  --cs-token-constant: #79C0FF;
+  --cs-token-string: #A5D6FF;
+  --cs-token-string-expression: #7EE787;
+  --cs-token-comment: #8B949E;
+  --cs-token-function: #D2A8FF;
+  --cs-token-parameter: #FFA657;
+  --cs-token-punctuation: #C9D1D9;
+  --cs-token-link: #79C0FF;
+}
+
+.cs-root {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--cs-bg);
+  border: 1px solid var(--cs-border);
+  border-radius: 22px;
+  box-shadow: var(--cs-shadow);
+  overflow: hidden;
+  color: var(--cs-foreground);
+  font-family: var(--cs-font);
+  font-size: var(--cs-fs);
+  font-variant-ligatures: none; /* ligatures change the visible character count while typing */
+}
+
+.cs-head {
+  display: flex; align-items: center; gap: 18px;
+  height: 60px; padding: 0 24px; flex: none;
+  background: var(--cs-head-bg); border-bottom: 1px solid var(--cs-border);
+  font-size: 20px; color: var(--cs-gutter);
+}
+.cs-dots { display: flex; gap: 8px; }
+.cs-dots i { display: block; width: 13px; height: 13px; border-radius: 50%; background: var(--cs-border); }
+.cs-file { color: var(--cs-foreground); font-weight: 600; letter-spacing: 0.01em; }
+.cs-lang { margin-left: auto; text-transform: uppercase; letter-spacing: 0.12em; font-size: 18px; color: var(--cs-foreground); }
+
+.cs-view { position: relative; overflow: hidden; flex: none; }
+.cs-body { position: relative; padding: var(--cs-pad) 0; will-change: transform; }
+
+.cs-row {
+  position: relative;
+  display: flex; align-items: center;
+  height: var(--cs-row);
+  line-height: var(--cs-row);
+  white-space: pre;
+  overflow: hidden;
+}
+.cs-tint { position: absolute; inset: 0; opacity: 0; pointer-events: none; }
+.cs-row[data-mark="add"] .cs-tint, .cs-row.cs-add .cs-tint { background: var(--cs-add-bg); box-shadow: inset 4px 0 0 var(--cs-add); }
+.cs-row[data-mark="del"] .cs-tint, .cs-row.cs-del .cs-tint { background: var(--cs-del-bg); box-shadow: inset 4px 0 0 var(--cs-del); }
+
+.cs-gut {
+  position: relative; flex: none;
+  width: var(--cs-gut); padding-right: 0.4ch;
+  text-align: right; color: var(--cs-gutter);
+  font-variant-numeric: tabular-nums;
+  display: grid; /* stacked numbers for each diff stage */
+}
+.cs-gut > .cs-n { grid-area: 1 / 1; }
+.cs-sign { position: relative; flex: none; width: 1.6ch; text-align: center; font-weight: 700; opacity: 0; }
+.cs-row[data-mark="add"] .cs-sign, .cs-row.cs-add .cs-sign { color: var(--cs-add); }
+.cs-row[data-mark="del"] .cs-sign, .cs-row.cs-del .cs-sign { color: var(--cs-del); }
+.cs-code { position: relative; flex: 1; min-width: 0; padding-right: 24px; }
+.cs-txt { display: inline-block; vertical-align: top; overflow: hidden; white-space: pre; }
+
+/* typing caret (created by codeSteps for typed lines) */
+.cs-caret { display: inline-block; vertical-align: top; width: 0; position: relative; opacity: 0; visibility: hidden; }
+.cs-caret::after {
+  content: ""; position: absolute; left: 1px; top: calc((var(--cs-row) - 1.15em) / 2);
+  width: 3px; height: 1.15em; border-radius: 2px; background: var(--cs-caret);
+  animation: cs-blink 1s steps(1) infinite;
+}
+@keyframes cs-blink { 50% { opacity: 0; } }
+
+/* value notes at the line end (created by codeSteps from `values`) */
+.cs-ann {
+  display: inline-block; vertical-align: middle; margin-left: 1.2ch;
+  padding: 0 0.7ch; border-radius: 10px;
+  line-height: calc(var(--cs-row) - 8px);
+  background: var(--cs-ann-bg); color: var(--cs-ann-fg);
+  font-weight: 600; font-size: 0.88em;
+  opacity: 0; visibility: hidden;
+}
+
+.cs-focusbar, .cs-runbar {
+  position: absolute; left: 10px; right: 10px; top: 0; height: var(--cs-row);
+  border-radius: 10px; pointer-events: none; opacity: 0; visibility: hidden;
+}
+.cs-focusbar { background: var(--cs-focus-bg); box-shadow: inset 4px 0 0 var(--cs-focus-edge); }
+.cs-runbar { background: var(--cs-run-bg); }
+.cs-runmark {
+  position: absolute; left: 9px; top: 0; width: 12px; height: 12px; margin-top: -6px;
+  border-radius: 50%; background: var(--cs-run); box-shadow: 0 0 0 5px var(--cs-run-bg);
+  opacity: 0; visibility: hidden; pointer-events: none; z-index: 2;
+}
+.cs-root[data-numbers="0"] .cs-runmark { left: 2px; }
+
+.cs-scroll { position: absolute; right: 8px; top: 12px; bottom: 12px; width: 6px; border-radius: 3px; background: rgb(127 127 127 / 0.12); opacity: 0; visibility: hidden; }
+.cs-thumb { position: absolute; left: 0; right: 0; top: 0; height: 40px; border-radius: 3px; background: rgb(127 127 127 / 0.45); }
+.cs-fade { position: absolute; left: 0; right: 0; bottom: 0; height: 64px; background: linear-gradient(to bottom, transparent, var(--cs-bg)); opacity: 0; visibility: hidden; pointer-events: none; }
+
+/* side panel (sans: the deck font, not mono) */
+.cs-panel {
+  display: flex; flex-direction: column; gap: 22px;
+  padding: 40px 40px 34px; border-radius: var(--radius-card, 22px);
+  background: var(--card-bg, var(--color-surface, #FFFFFF)); border: var(--card-border, 1px solid var(--color-line, #DCD8D2));
+  box-shadow: var(--cs-shadow, 0 12px 32px rgb(0 0 0 / 0.08));
+  font-family: var(--font-sans, system-ui, sans-serif);
+}
+.cs-peyebrow { font-family: var(--cs-font, monospace); font-size: 20px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-primary-ink, #263F77); }
+.cs-pstack { display: grid; }
+.cs-pitem { grid-area: 1 / 1; }
+.cs-ptitle { margin: 0 0 14px; font-size: 36px; line-height: 1.15; font-weight: 700; letter-spacing: -0.02em; color: var(--color-ink, #1B1915); }
+.cs-pbody { margin: 0; font-size: 26px; line-height: 1.45; color: var(--color-ink-2, #423F3B); }
+.cs-pdots { display: flex; gap: 8px; margin-top: auto; }
+.cs-pdot { position: relative; display: block; width: 44px; height: 6px; border-radius: 3px; overflow: hidden; background: var(--color-line, #DCD8D2); }
+.cs-pdot i { position: absolute; inset: 0; border-radius: 3px; background: var(--cs-focus-edge, #37579F); opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) { .cs-caret::after { animation: none; } }

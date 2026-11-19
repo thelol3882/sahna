@@ -1,0 +1,25 @@
+import { fetchJson } from "./http";
+
+export type Order = { id: string; total: number };
+
+/** Loads one order from the billing service. */
+export async function loadOrder(id: string): Promise<Order> {
+  const res = await fetchJson(`/orders/${id}`);
+  return res as Order;
+}
+
+/** Loads many orders, one after another. */
+export async function loadOrders(ids: string[]): Promise<Order[]> {
+  const out: Order[] = [];
+  for (const id of ids) {
+    out.push(await loadOrder(id));
+  }
+  return out;
+}
+
+/** Sum of all order totals. */
+export function sumTotals(orders: Order[]): number {
+  let sum = 0;
+  for (const o of orders) sum += o.total;
+  return sum;
+}
