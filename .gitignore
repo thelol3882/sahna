@@ -1,0 +1,14 @@
+node_modules/
+dist/
+dist-single/
+.vite/
+_site/
+__pycache__/
+*.pyc
+*.tsbuildinfo
+.venv/
+report/
+recordings/
+.run/
+config.local.json
+.DS_Store
