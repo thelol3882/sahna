@@ -11,7 +11,10 @@
     "chunkMs": 5000,
     "bitrate": 128000,
     "countdownMs": 3000,
-    "processing": false
+    "processing": false,
+    "autoMute": true,
+    "startFromCover": true,
+    "camera": true
   },
   "obs": { "url": "ws://127.0.0.1:4455", "password": "" }
 }

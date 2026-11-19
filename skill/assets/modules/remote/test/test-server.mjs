@@ -203,6 +203,23 @@ assert.deepEqual(F.take("level"), [{ type: "level", part: 2, v: 0.46 }]);
 assert.equal(L.take("level").length, 1);
 ok("voice level relayed to decks (rounded); bad part or value dropped");
 
+{
+  const jpeg = "data:image/jpeg;base64," + "A".repeat(400);
+  R1.take(); R2.take();
+  R2.json({ type: "frame", part: 2, t: Date.now(), data: jpeg });
+  R2.json({ type: "frame", part: 2, t: Date.now(), data: jpeg });            // under 30 ms after: dropped
+  R2.json({ type: "frame", part: 9, t: Date.now(), data: jpeg });            // no such part
+  R2.json({ type: "frame", part: 2, t: Date.now(), data: "data:text/html,<b>" });
+  await settle();
+  assert.deepEqual(F.take("frame"), [{ type: "frame", part: 2, data: jpeg }]);
+  assert.equal(L.take("frame").length, 1);
+  assert.equal(R1.take("thumb").length, 1, "the other phone gets a thumbnail");
+  assert.equal(R2.take("thumb").length, 0, "not the sender");
+  const team = R1.take("team").pop();
+  assert.ok(team && team.list.find((x) => x.part === 2)?.cam, "the team list says part 2 has a camera");
+  ok("camera frames: to the decks, a thumbnail to the other phones, JPEG only, throttled; team shows the camera");
+}
+
 const t = Date.now();
 R1.json({ type: "ping", t }); await settle();
 const pong = R1.take("pong")[0];

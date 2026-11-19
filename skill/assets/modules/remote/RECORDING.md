@@ -4,11 +4,7 @@ OBS records the deck itself (no screen share), and every speaker's voice is reco
 
 ## Once, before the first take (lead, about 5 minutes)
 
-1. **OBS 28 or newer: turn on the WebSocket server.** Tools → WebSocket Server Settings → tick *Enable WebSocket server* → *Show Connect Info* → copy the password into `remote/config.local.json` (create it; git ignores it, so the password never reaches GitHub):
-   ```json
-   { "obs": { "password": "paste-it-here" } }
-   ```
-   (Or untick *Enable Authentication* and leave the password empty.) Windows may ask to let OBS through the firewall: allow it, because Docker reaches OBS through it.
+1. **OBS 28 or newer: the first `npm run record` asks** "Use OBS automation? [Y/n]". Say yes, then in OBS: Tools → WebSocket Server Settings → tick *Enable WebSocket server* → Apply → *Show Connect Info*, and paste the Server Password into the terminal. It checks the password against OBS and saves it to `remote/config.local.json` (git ignores it). Change it any time with `npm run obs`. Windows may ask to let OBS through the firewall: allow it, because Docker reaches OBS through it.
 2. Run `npm run record` once, then in OBS: **Profile → Import** → `remote/obs-profile` (switch to it) and **Scene Collection → Import** → `remote/obs-scene-collection.json` (switch to it). You never re-import: every start writes the new deck link into the *Deck (browser)* source by itself.
 3. ffmpeg must be installed for the automatic mix: `winget install Gyan.FFmpeg` (macOS: `brew install ffmpeg`).
 
@@ -39,6 +35,14 @@ npm run mix -- --beep-at 4.2                            # if the beep is not fou
 npm run stop     # stop everything at the end (a running take is stopped and mixed first)
 ```
 
+**Every take starts on the cover.** Start jumps every deck (lead, OBS, viewers) to the cover for the countdown, and the intro plays right after the sync beep, so each take opens the same way. `"startFromCover": false` under `recording` turns it off.
+
+**Lead deck closed?** The control page says LEAD DECK CLOSED with an *Open the lead deck* button (during a take, a red bar with the same button). It opens on the slide the talk is on and does not pull the other decks back. A lead deck in a background tab keeps working; a window of its own is safer, because Chrome's Memory Saver can unload background tabs (or add the site under chrome://settings/performance → *Always keep these sites active*).
+
+**Mic and camera, as in Meet.** Each phone has a round mic button and a camera button (with your own picture) next to Back and Next, and a small chip per teammate: their face or initials, a crossed red mic when muted, an orange ring on whose turn it is, a green ring while they talk. A phone mutes itself when its speaker's part ends and unmutes when it starts, so nobody records silence by forgetting; tap the mic any time to override until the next change of turn. Muted means the chip does not light up and the voice stays out of the mix; the recording keeps running, so the tracks stay in sync. `"autoMute": false` turns the automatic part off.
+
+**Faces on the slides.** With `"camera": true` under `recording`, the speaker chip on every deck turns into the speaker's live face (and anyone else who talks gets one too). The OBS deck shows it as well, so the faces are in the recording; `npm run mix` delays the voices by the measured camera delay so lips and words match. Each phone sends about 15 small frames a second (about 1 Mbit/s); `"camera": { "fps": 10, "size": 160 }` makes it lighter on a weak connection. Camera off on the phone = the initials again.
+
 ## Rules for every speaker
 
 - The call runs on the laptop, not on the phone with the remote. Headphones on.
@@ -49,7 +53,7 @@ npm run stop     # stop everything at the end (a running take is stopped and mix
 
 > 1. Join the call on your laptop (not on the phone) and put headphones on.
 > 2. Open your link on your phone: Chrome on Android, Safari on iPhone.
-> 3. Tap "I'm ready" and allow the microphone.
+> 3. Tap "I'm ready" and allow the microphone (and the camera, if your deck shows faces).
 > 4. Keep that page open with the screen on until the lead says stop.
 > 5. Your Next button lights up on your part: press it when the slide stops moving.
 > 6. If a red bar says the microphone stopped, tap it.
@@ -65,6 +69,6 @@ Speed up the talk parts to 1.5x and keep the demo video at 1x, so the music stay
 ## When something goes wrong
 
 - **OBS not found** on the control page: OBS closed, or its WebSocket server is off. Start the OBS recording by hand before Start and stop it after Stop; the mix still finds the newest video in your Videos folder.
-- **OBS asks for a password / wrong password**: copy it again from Show Connect Info into `remote/config.local.json`, then `npm run record -- --fresh`.
+- **OBS asks for a password / wrong password**: `npm run obs` and paste it again (Show Connect Info → Copy), then `npm run record -- --fresh`.
 - **MIX FAILED**: the reason is on the control page (often: ffmpeg not installed). Fix it, then `npm run mix`.
 - Anything stuck: `npm run stop`, then `npm run record`.

@@ -221,6 +221,12 @@ def mix(session, video=None, beep_at=None, deck_track=0, deck_volume=1.0, lufs=-
     else:
         zero = -min(t["offset"] for t in tracks)  # the earliest take starts at 0
 
+    # phone cameras on the deck arrive a little after the voice: delay the voices by the same, so lips match
+    lag = tl.get("cameraLagMs")
+    if video and isinstance(lag, (int, float)) and lag > 20:
+        lag = min(lag, 800) / 1000.0
+        print(f"Camera bubbles: voices {lag * 1000:.0f} ms later, to match the faces")
+        zero += lag
     for t in tracks:
         t["pos"] = zero + t["offset"]
         print(f"  {t['name']:<20} {t['file']:<24} at {t['pos']:+8.3f} s  ({t['how']}, rtt {t.get('rttMs')} ms)")

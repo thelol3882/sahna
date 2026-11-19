@@ -19,7 +19,7 @@ I was tired of plain PPTX decks and wanted my talks to feel like a product page.
 - Fly the camera through a 3D world of scenes instead of switching slides, with an overview map on O.
 - Present with a presenter window, step bars that show when an animation is done, a laser, a pen, black and white screens, and backup slides for questions that you open with `/` and leave with Esc.
 - Rehearse with timing per scene and per speaker, and compare runs.
-- Present from phones and record a group talk: each phone is a remote and records its own speaker, other viewers follow the lead deck in their own browser, and OBS records the deck.
+- Present from phones and record a group talk: each phone is a remote and records its own speaker, with Meet-style mic and camera buttons; the speaker's live face sits on the slide, other viewers follow the lead deck in their own browser, and OBS records the deck.
 - Ship one offline HTML file, plus a PDF and a PPTX of the same scenes.
 - Do all of it with one command, `sahna`: a menu for people and `--json` subcommands for Claude.
 

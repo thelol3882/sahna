@@ -10,6 +10,8 @@ The lead deck sends its scene and step to the remote server, and every other dec
 
 Start on the control page (or Ctrl+R in the lead deck) starts OBS over obs-websocket, counts 3-2-1 on every phone and plays a sync beep. Stop stops the phones, then OBS, then mixes: each voice track is aligned by the beep and the clock offsets measured during the take, loudness-normalised and laid under the OBS video as `final.mp4`.
 
+Each phone also works like a call: a mic button (it mutes itself outside its speaker's part, so off-turn talk never reaches the mix), a camera button and a chip per teammate. With the camera on, the speaker chip on every deck shows the live face. The phone sends small JPEG frames over the same WebSocket instead of a video call, because a quick tunnel carries only web traffic and peer-to-peer video often fails on mobile networks. The OBS deck shows the faces too, so they are in the recording, and the mix delays the voices by the measured frame delay so lips match.
+
 The user only runs npm commands: `npm run record`, `stop`, `mix`, `links` (or `npx sahna record` …). The server runs in Docker when it is available, else in Node, behind a Cloudflare quick tunnel.
 
 This was tested with simulated phones and a fake OBS; do one short take with real phones and real OBS the day before.

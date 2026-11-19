@@ -13,7 +13,8 @@ Base: `presentation-final-gh` (18 Nov), the follow() model. The wire protocol of
 | `preflight.html` | Control page: big status (WAITING FOR n / READY / STARTING / REC mm:ss / SAVING / MIXING / DONE / MIX FAILED), one button (Start / Stop, both with a 2-press confirm when risky), OBS line, one row per speaker (dot + one line + level; click for details), Details (checks) and Events collapsed, Open folder / Copy path after the mix. |
 | `rec-overlay.js` | Injected by the server into `?remote&obs` and `?remote&lead=` decks: the sync beep (1 kHz, 0.2 s) + white flash; REC badge on the lead deck only. Lead deck only: Ctrl+R / Cmd+R starts, twice stops; reports tab visibility; while the tab is hidden, animation frames come from a worker timer (Chrome stops rAF in background tabs, which froze GSAP and so the phones' Next). |
 | `start.py` | All the npm commands (stdlib). Docker by default when running, else node + cloudflared. `--record` (idempotent: reuses a healthy run, cleans up a dead or half-started one incl. the compose project), `--links`, `--stop` (stops a running take, waits for its mix), `--mix …` (→ mix.py), `--fresh`, `--local`, `--mode`, `--no-open`, `--no-build`, `--qr`, `--dry-run`. Opens the control page and the lead deck (webbrowser), copies the team message (clip / pbcopy / wl-copy / xclip), runs the **helper** (`--helper`, detached, also in Docker mode): polls `/api/helper`, mixes stopped takes, opens folders. State in `remote/.run/`. |
-| `run.mjs` | `npm run record|stop|mix|links` → finds py -3 / python / python3, runs `start.py`. |
+| `obs-check.mjs` | One obs-websocket handshake for the first-run OBS question (`npm run obs`): connected, wrong password or not found. |
+| `run.mjs` | `npm run record|stop|mix|links|obs` → finds py -3 / python / python3, runs `start.py`. |
 | `qr.py` | Stdlib QR encoder (byte mode, level M, versions 1–10), terminal half-blocks. Matrices identical to the `qrcode` library for 150 random inputs. |
 | `mix.py` | Stdlib + ffmpeg: align takes by `timeline.json`, loudnorm each, amix, mux under the OBS video (beep found with bandpass + silencedetect). No session = the latest; no `--video` = `timeline.obs.outputPath`, else the newest video written during the take in `obs.folder` / ~/Videos / ~/Movies / ~. With a video it writes `final.mp4` and `voices.wav` (same timeline) in one ffmpeg run. `mix()` is used by the helper. |
 | `Dockerfile`, `Dockerfile.dockerignore`, `compose.yaml` | Build the deck in Docker and run the server; cloudflared quick tunnel as a second service; `recordings/` bind-mounted. |
@@ -29,6 +30,7 @@ Add to the deck's `package.json`:
   "stop": "node remote/run.mjs --stop",
   "mix": "node remote/run.mjs --mix",
   "links": "node remote/run.mjs --links",
+  "obs": "node remote/run.mjs --obs",
   "remote": "node remote/run.mjs",
   "remote:stop": "node remote/run.mjs --stop"
 },
@@ -37,7 +39,7 @@ Add to the deck's `package.json`:
 
 Add to `.gitignore`: `recordings/`, `remote/.run/`, `remote/obs-scene-collection.json`, `remote/obs-profile/`, `remote/config.local.json`.
 
-The starter's `package.json` already has `ws` and the `remote`/`record`/`remote:stop` scripts; add `stop`, `mix` and `links` as above (and keep the `--record` form of `record`).
+The starter's `package.json` already has `ws` and all of these scripts.
 
 ## Config (`remote/config.json`, all optional)
 
@@ -48,7 +50,8 @@ The starter's `package.json` already has `ws` and the `remote`/`record`/`remote:
   "startScene": "cover",
   "mediaDir": "media",
   "speakers": [{ "part": 1, "name": "Alex" }, { "part": 2, "name": "Sam" }],
-  "recording": { "chunkMs": 5000, "bitrate": 128000, "countdownMs": 3000, "processing": false },
+  "recording": { "chunkMs": 5000, "bitrate": 128000, "countdownMs": 3000, "processing": false,
+                 "autoMute": true, "startFromCover": true, "camera": true },
   "obs": { "url": "ws://127.0.0.1:4455", "password": "", "source": "Deck (browser)", "folder": "~/Videos" }
 }
 ```
@@ -59,6 +62,10 @@ The starter's `package.json` already has `ws` and the `remote`/`record`/`remote:
 - `mediaDir`: the folder `/media/*` is served from (videos of the video-scene module), relative to the deck project; default `media/`. Order: `MEDIA_DIR` env (Docker sets `/app/media`) > `mediaDir` > `media/`. With Docker, `start.py` mounts the real folder through `MEDIA_HOST_DIR`, because a Windows git checkout turns a `media` symlink into a text file and Docker cannot mount a file; point `mediaDir` at a real folder there.
 - `speakers` may also carry `id` (matches `scene.speaker`). Without them: `DECK.speakers` in `src/deck/config.ts` (part = position + 1), else the deck's manifest, else speaker names of the scenes in order of first appearance.
 - `title`: else `DECK.title`.
+- `recording.autoMute` (default on): a phone is muted while it is not its speaker's part; the mic button overrides it until the next change of turn. Mute is a gain of 0 before the level and the recorder, so the recording keeps running and stays in sync.
+- `recording.startFromCover` (default on): Start jumps every deck to the first scene for the countdown and replays the intro 700 ms after the beep (`introAfterBeepMs`).
+- `recording.camera` (default off): `true` or `{ "fps": 15, "size": 192, "quality": 0.62 }`. Phones send square JPEG frames over the WebSocket (`{type:"frame", part, t, data}`); the server relays them to every deck (dropped for a deck with a full buffer), sends one thumbnail a second to the other phones, and records the median delay as `cameraLagMs` in `timeline.json`; `mix.py` delays the voices by it. The deck's speaker chip shows the face (`camera` in `remote-client.ts`, `.spk-face` in `styles.css`). No video is recorded on the phones: the faces reach the video through the OBS deck.
+- A lead deck that joins while the talk is on (the control page's *Open the lead deck*) gets `{type:"sync", state, resume:true}` and goes there; its own states are ignored until it reports that place (or 30 s pass), so it never pulls the other decks back to its first scene.
 - `recording.processing: true` turns echo cancellation, noise suppression and auto gain on (for speakers without headphones; worse voice).
 
 Scenes, best first: `remote/scenes.json` (`[{id, title, speaker | part, notes: string[] | "a (click) b", appendix?}]`) → the lead deck's `{type:"scenes"}` manifest → `src/scenes/index.ts` parsed (top-level object literals of `export const scenes = [...]`, fields in any order, string/array/number literals; non-literal values ignored). Scenes with part 0 (backup slides) cannot be moved by phones; the lead can.

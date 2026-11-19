@@ -60,6 +60,9 @@ const HEARTBEAT_MS = Number(process.env.HEARTBEAT_MS ?? 15000);
 const MAX_MSG_BYTES = 256 * 1024;
 const MAX_CHUNK_BYTES = 32 * 1024 * 1024;
 const COUNTDOWN_MS = Number(CONFIG.recording?.countdownMs ?? 3000);
+// every take starts on the cover and plays the intro right after the sync beep (recording.startFromCover: false = off)
+const START_FROM_COVER = CONFIG.recording?.startFromCover !== false;
+const INTRO_AFTER_BEEP_MS = Number(CONFIG.recording?.introAfterBeepMs ?? 700);
 
 const DECK_DIR = ["dist-single", "dist"].map((d) => join(root, d)).find((d) => existsSync(join(d, "index.html")));
 // media folder: MEDIA_DIR env (Docker) > config.json "mediaDir" (relative to the deck project) > media/
@@ -486,6 +489,9 @@ function saveTimeline(now = false) {
       obs: rec.obs ?? null,
       tracks: [...rec.takes.values()].map(({ fd, ...t }) => t),
       events: rec.events,
+      // the phone cameras reach the OBS deck this much later than the voices are heard: npm run mix delays
+      // the voices by it, so lips and words match (null: no camera in this take)
+      cameraLagMs: camLagMs(),
     };
     const file = join(rec.dir, "timeline.json");
     try { writeFileSync(file + ".tmp", JSON.stringify(out, null, 2)); renameSync(file + ".tmp", file); }
@@ -543,6 +549,8 @@ function beginTake(viaObs) {
   if (lastState?.state) recEvent(sceneEvent(lastState.state));
   const msg = { type: "rec", state: "countdown", session, at: rec.startedAt, countdownMs: COUNTDOWN_MS };
   toAll(remotes, msg); toAll(consoles, msg); toAll(overlays, msg);
+  // the countdown runs on the cover: every deck (lead, OBS, viewers) jumps there now
+  if (START_FROM_COVER) toAll(decks, { type: "cmd", cmd: "jump", index: 0 });
   console.log(`REC ${session}: countdown${viaObs ? " (OBS recording)" : ""}`);
   countdownTimer = setTimeout(() => {
     if (!recActive()) return;
@@ -551,6 +559,8 @@ function beginTake(viaObs) {
     recEvent({ type: "beep" });
     const go = { type: "rec", state: "recording", session, at: rec.startedAt, beepAt: rec.beepAt };
     toAll(overlays, { ...go, beep: true }); toAll(remotes, go); toAll(consoles, go);
+    // after the beep and its flash, every deck plays the intro, so the take opens with it
+    if (START_FROM_COVER) setTimeout(() => { if (recActive()) toAll(decks, { type: "cmd", cmd: "replay" }); }, INTRO_AFTER_BEEP_MS);
   }, COUNTDOWN_MS);
 }
 
@@ -699,6 +709,41 @@ function toAll(set, msg, except) { const s = JSON.stringify(msg); for (const ws 
 const scenesMsg = () => ({ type: "scenes", scenes: SCENES, speakers: SPEAKERS });
 const maxPart = () => Math.max(SPEAKERS.length, ...SPEAKERS.map((s) => s.part), ...SCENES.map((s) => s.part), 1);
 
+/** Camera frames: when each part sent its last one, and how late they arrive during a take. */
+const camAt = new Map();           // part -> last frame time
+const thumbAt = new Map();         // part -> last thumbnail sent to the phones
+const CAM_LIVE_MS = 2000;
+function camLagMs() {
+  const l = rec?.camLag;
+  if (!l || l.length < 10) return null;
+  const sorted = [...l].sort((a, b) => a - b);
+  return Math.round(sorted[Math.floor(sorted.length / 2)]);
+}
+
+/** Who is on the call, for the chips on every phone: online, mic on, muted, talking right now. */
+const talkAt = new Map();          // part -> last time its level said "talking"
+const TALK_MS = 700;
+function teamMsg() {
+  const now = Date.now();
+  const phones = [...remotes].map((ws) => ws.info).filter((i) => i && i.part >= 1);
+  return {
+    type: "team",
+    list: SPEAKERS.map((s) => {
+      const i = phones.filter((x) => x.part === s.part).sort((a, b) => (b.seenAt ?? 0) - (a.seenAt ?? 0))[0];
+      return { part: s.part, name: s.name, online: !!i, micOn: !!i?.micOn, muted: !!i?.muted,
+        cam: !!i && now - (camAt.get(s.part) ?? 0) < CAM_LIVE_MS,
+        talking: !!i && !i.muted && now - (talkAt.get(s.part) ?? 0) < TALK_MS };
+    }),
+  };
+}
+let lastTeam = "";
+function pushTeam(force) {
+  const msg = teamMsg(), key = JSON.stringify(msg);
+  if (!force && key === lastTeam) return;
+  lastTeam = key;
+  for (const r of remotes) send(r, key);
+}
+
 /** What the pre-flight page shows, once a second. */
 function statusMsg() {
   const now = Date.now();
@@ -719,7 +764,7 @@ function statusMsg() {
   const overlayKinds = [...overlays].map((o) => o.kind);
   return {
     type: "status", now,
-    lead: { keySet: LEAD !== "", decks: leads.size, hidden: [...overlays].some((o) => o.kind === "lead") && [...overlays].filter((o) => o.kind === "lead").every((o) => o.hidden) },
+    lead: { keySet: LEAD !== "", decks: leads.size, at: lastState ? (SCENES[lastState.state.index]?.id ?? null) : null, hidden: [...overlays].some((o) => o.kind === "lead") && [...overlays].filter((o) => o.kind === "lead").every((o) => o.hidden) },
     consoles: consoles.size,
     decks: { total: decks.size, followers: decks.size - leads.size, obs: overlayKinds.filter((k) => k === "obs").length },
     scenes: { count: SCENES.length, source: SCENE_SOURCE, orphans: SCENES.filter((s) => s.part === 0 && !s.appendix).map((s) => s.id) },
@@ -753,6 +798,12 @@ server.on("upgrade", (req, socket, head) => {
       send(ws, { type: "role", lead: isLead });
       // a deck that joins late goes straight to the slide of the lead
       if (!isLead && leads.size && lastState) send(ws, { type: "sync", state: lastState.state });
+      // a lead deck that was closed and opened again goes back to where the talk is, instead of pulling
+      // every deck to its own first slide: its own states count again once it is there (or after 30 s)
+      if (isLead && leads.size === 1 && lastState) {
+        ws.resume = { index: lastState.state.index, step: lastState.state.step, until: Date.now() + 30000 };
+        send(ws, { type: "sync", state: lastState.state, resume: true });
+      }
       toAll(remotes, { type: "deck", online: true });
     } else if (role === "remote") {
       ws.info = { part: 0, seenAt: Date.now() };
@@ -760,6 +811,7 @@ server.on("upgrade", (req, socket, head) => {
       send(ws, scenesMsg());
       send(ws, recMsg());
       if (lastState) send(ws, lastState);
+      send(ws, JSON.stringify(teamMsg()));
     } else if (role === "overlay") {
       ws.kind = q.get("kind") === "lead" && leadOk ? "lead" : "obs";
       send(ws, recMsg());
@@ -779,6 +831,11 @@ server.on("upgrade", (req, socket, head) => {
       if (role === "deck" && m.type === "state" && m.state && typeof m.state === "object") {
         // with a lead deck open, only its state counts; the other decks follow it
         if (leads.size && !leads.has(ws)) return;
+        if (ws.resume) {
+          if (m.state.index === ws.resume.index && m.state.step === ws.resume.step) delete ws.resume;
+          else if (Date.now() < ws.resume.until) return;
+          else delete ws.resume;
+        }
         const prev = lastState?.state;
         lastState = { type: "state", state: m.state };
         toAll(remotes, lastState);
@@ -817,6 +874,29 @@ server.on("upgrade", (req, socket, head) => {
         const out = JSON.stringify({ type: "level", part, v: Math.round(v * 100) / 100 });
         for (const d of decks) send(d, out);
         for (const c of consoles) send(c, out);
+        if (v >= 0.12) { const was = Date.now() - (talkAt.get(part) ?? 0) < TALK_MS; talkAt.set(part, Date.now()); if (!was) pushTeam(); }
+      } else if (role === "remote" && m.type === "frame") {
+        // a camera frame (small JPEG as a data URL): to every deck; about one a second to the other phones
+        const part = Number(m.part), now = Date.now();
+        if (!(Number.isInteger(part) && part >= 1 && part <= maxPart())) return;
+        if (typeof m.data !== "string" || !m.data.startsWith("data:image/jpeg;base64,") || m.data.length > 160000) return;
+        if (now - (ws.lastFrame ?? 0) < 30) return;
+        ws.lastFrame = now;
+        const was = now - (camAt.get(part) ?? 0) < CAM_LIVE_MS;
+        camAt.set(part, now);
+        const out = JSON.stringify({ type: "frame", part, data: m.data });
+        for (const d of decks) if (d.bufferedAmount < 512 * 1024) send(d, out);
+        if (now - (thumbAt.get(part) ?? 0) > 1000) {
+          thumbAt.set(part, now);
+          const th = JSON.stringify({ type: "thumb", part, data: m.data });
+          for (const r of remotes) if (r !== ws && r.bufferedAmount < 256 * 1024) send(r, th);
+        }
+        const off = ws.info?.offset, t = Number(m.t);
+        if (rec && !rec.stoppedAt && Number.isFinite(off) && Number.isFinite(t)) {
+          const lag = now - (t + off);
+          if (lag > -500 && lag < 5000) { (rec.camLag ||= []).push(lag); if (rec.camLag.length > 3000) rec.camLag.splice(0, 1000); }
+        }
+        if (!was) pushTeam();
       } else if (role === "remote" && m.type === "status") {
         // optional phone health for the pre-flight page
         const n = (x) => (Number.isFinite(Number(x)) ? Number(x) : null);
@@ -825,9 +905,10 @@ server.on("upgrade", (req, socket, head) => {
           part: Number.isInteger(part) && part >= 0 ? part : 0, seenAt: Date.now(),
           battery: n(m.battery), charging: typeof m.charging === "boolean" ? m.charging : null,
           mic: ["granted", "denied", "prompt", "unknown"].includes(m.mic) ? m.mic : "unknown",
-          micOn: !!m.micOn, headphones: !!m.headphones, recording: !!m.recording, hidden: !!m.hidden,
+          micOn: !!m.micOn, muted: !!m.muted, headphones: !!m.headphones, recording: !!m.recording, hidden: !!m.hidden,
           queue: n(m.queue) ?? 0, rtt: n(m.rtt), offset: n(m.offset), mime: typeof m.mime === "string" ? m.mime.slice(0, 60) : null,
         };
+        pushTeam();
       } else if (role === "remote" && m.type === "rec-gap") {
         // the phone was in the background or locked: its recording may have a hole here
         if (!recActive()) return;
@@ -881,6 +962,9 @@ const heartbeat = setInterval(() => {
 heartbeat.unref();
 const statusTimer = setInterval(() => { if (consoles.size) toAll(consoles, statusMsg()); }, 1000);
 statusTimer.unref();
+// chips stop glowing when a voice stops, and drop a phone that left
+const teamTimer = setInterval(() => { if (remotes.size) pushTeam(); }, 250);
+teamTimer.unref();
 
 /* ------------------------------------------------------------------ start */
 

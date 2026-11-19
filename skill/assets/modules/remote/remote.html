@@ -64,6 +64,37 @@ button:focus-visible { outline: 3px solid var(--turn); outline-offset: 2px; }
 .pill.turn { background: var(--turn); color: var(--turn-ink); animation: pulse 1.6s ease-in-out infinite; }
 @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(255,138,76,.55); } 50% { box-shadow: 0 0 0 7px rgba(255,138,76,0); } }
 .pill.rec { background: var(--rec); color: #fff; font-family: var(--mono); }
+/* team strip: your mic button (as in Meet) and a chip per teammate */
+.team { display: flex; align-items: center; gap: 10px; flex: none; }
+.mic, .cam { --lv: 0; width: 60px; height: 60px; border-radius: 50%; flex: none; display: grid; place-items: center;
+  background: var(--raise); color: var(--ink); box-shadow: 0 0 0 calc(var(--lv) * 9px) rgba(76,195,138,.45); transition: background .15s, box-shadow .1s; }
+.mic svg { width: 28px; height: 28px; }
+.mic.off { background: #EA4335; color: #fff; box-shadow: none; }
+.mic.none { background: var(--surface); color: var(--faint); box-shadow: none; }
+.cam { position: relative; overflow: hidden; box-shadow: none; }
+.cam video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); border-radius: 50%; }
+.cam svg { position: relative; }
+.cam.on svg { opacity: 0; }
+.cam.off { background: #EA4335; color: #fff; }
+.cam.none { background: var(--surface); color: var(--faint); }
+.mates { display: flex; gap: 6px; flex: 1 1 auto; min-width: 0; }
+.mate { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.mate .face { position: relative; width: 44px; height: 44px; border-radius: 50%; background: var(--raise); display: grid; place-items: center;
+  font-size: 15px; font-weight: 800; color: var(--muted); border: 2px solid transparent; transition: border-color .15s, box-shadow .15s; }
+.mate .face img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.mate .badge { position: absolute; right: -4px; bottom: -4px; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: var(--bg); }
+.mate svg { width: 13px; height: 13px; }
+.mate b { font-size: 12px; font-weight: 700; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.mate.live svg { color: var(--good); }
+.mate.muted svg { color: #FF6B5E; }
+.mate.nomic svg, .mate.gone svg { color: var(--faint); }
+.mate.gone { opacity: .45; }
+.mate.gone .face { border-style: dashed; border-color: var(--line); }
+.mate.turn .face { border-color: var(--turn); }
+.mate.turn b { color: var(--turn); }
+.mate.talking .face { box-shadow: 0 0 0 3px rgba(76,195,138,.75); }
+.mute-note { font-size: 13px; color: var(--faint); text-align: center; margin-top: -4px; flex: none; }
+.mute-note.on { color: #FF8A80; }
 .pill.rec.bad { background: transparent; color: var(--rec); border: 1px solid var(--rec); }
 .micwarn { min-height: 52px; border-radius: 14px; background: var(--bad); color: #fff; font-size: 16px; font-weight: 750; }
 .more { width: 44px; height: 44px; border-radius: 12px; font-size: 22px; font-weight: 800; color: var(--muted); flex: none; line-height: 1; }
@@ -91,7 +122,6 @@ button:focus-visible { outline: 3px solid var(--turn); outline-offset: 2px; }
 .media .line b { color: var(--ink); font-family: var(--font); font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .media .track { height: 5px; border-radius: 5px; background: var(--line); overflow: hidden; }
 .media .track i { display: block; height: 100%; background: var(--turn); width: 0; }
-.replay { border: 1px dashed var(--line); border-radius: 14px; min-height: 48px; font-size: 16px; font-weight: 600; color: var(--muted); }
 .bar { display: flex; gap: 10px; flex: none; }
 .back { flex: 0 0 24%; background: var(--surface); border-radius: 24px; font-size: 18px; font-weight: 700; color: var(--muted); min-height: 128px; }
 .next { flex: 1 1 auto; border-radius: 24px; min-height: 128px; font-size: 30px; font-weight: 800; background: var(--surface); color: var(--faint); transition: transform .08s, background .2s; }
@@ -171,7 +201,8 @@ button:focus-visible { outline: 3px solid var(--turn); outline-offset: 2px; }
     <div class="line"><b id="mChapter"></b><span id="mTime"></span></div>
     <div class="track"><i id="mBar"></i></div>
   </div>
-  <button class="replay" id="replay" hidden>Replay the intro</button>
+  <div class="team" id="team" hidden><button class="mic" id="micBtn" aria-label="Microphone"></button><button class="cam" id="camBtn" aria-label="Camera" hidden><video id="selfView" muted playsinline autoplay></video></button><div class="mates" id="mates"></div></div>
+  <div class="mute-note" id="muteNote" hidden></div>
   <div class="bar" id="bar">
     <button class="back" id="back" aria-label="Back one step">Back</button>
     <button class="next" id="fwd">Next</button>
@@ -280,7 +311,6 @@ function render() {
 
   const who = $("who"), read = $("read");
   read.textContent = "";
-  $("replay").hidden = true;
   const open = sock && sock.readyState === 1;
   if (!state) {
     who.className = "who"; who.textContent = open ? "Waiting for the deck…" : "Connecting…";
@@ -342,9 +372,6 @@ function render() {
   }
   $("hint").textContent = hint;
   renderMedia(mine);
-  // the intro can be replayed while the first scene is on screen
-  $("replay").hidden = !(me && state.index === 0);
-  $("replay").disabled = !live();
   setBar(mine, mine ? "" : `${nameOf(s.part) || "Nobody"}'s turn`);
 }
 
@@ -361,6 +388,9 @@ function renderTop() {
   $("meName").textContent = me ? nameOf(me) : "Watching";
   $("lvBox").hidden = !micLive() || recording();   // during REC the red badge says the mic runs
   $("turnPill").hidden = !isMine();
+  turnChanged();
+  applyCam();
+  renderTeam();
   // the speaker said "I'm ready" but the microphone is gone (another app took it, the browser stopped it)
   $("micWarn").hidden = !(me > 0 && joined && levelOn && !micLive());
 }
@@ -428,6 +458,117 @@ if (navigator.permissions && navigator.permissions.query) {
   }).catch(() => {});
 }
 
+// Mute. AUTO_MUTE (config recording.autoMute, default on): the mic is muted while it is not your part.
+// A tap on the pill flips it for now; the next change of turn goes back to automatic.
+const AUTO_MUTE = RECCFG.autoMute !== false;
+let muteOverride = null;          // null = automatic, true = muted by hand, false = live by hand
+let overrideFor = null;           // the "mine" state the override was set in
+function micMuted() {
+  if (muteOverride !== null) return muteOverride;
+  return AUTO_MUTE && !!me && !isMine();
+}
+const ICON_MIC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>';
+const ICON_MIC_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" x2="22" y1="2" y2="22"/><path d="M18.89 13.23A7.12 7.12 0 0 0 19 12v-2"/><path d="M5 10v2a7 7 0 0 0 12 5"/><path d="M15 9.34V5a3 3 0 0 0-5.68-1.33"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12"/><line x1="12" x2="12" y1="19" y2="22"/></svg>';
+const ICON_CAM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg>';
+const ICON_CAM_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.66 6H14a2 2 0 0 1 2 2v2.5l5.248-3.062A.5.5 0 0 1 22 7.87v8.196"/><path d="M16 16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2"/><path d="m2 2 20 20"/></svg>';
+let TEAM = [];
+const thumbs = {};   // part -> the last small picture of a teammate's camera (about one per second)
+function applyMute() {
+  const m = micMuted();
+  if (mic && mic.gain) mic.gain.gain.setTargetAtTime(m ? 0 : 1, mic.ctx.currentTime, 0.03);
+  const b = $("micBtn");
+  if (!b) return;
+  const live = micLive();
+  b.className = "mic" + (!live ? " none" : m ? " off" : "");
+  b.innerHTML = live && !m ? ICON_MIC : ICON_MIC_OFF;
+  if (!live || m) b.style.setProperty("--lv", 0);
+  b.setAttribute("aria-label", !live ? "Microphone off. Tap to turn it on" : m ? "Muted. Tap to unmute" : "Microphone on. Tap to mute");
+  b.setAttribute("aria-pressed", String(live && m));
+  const note = $("muteNote");
+  note.hidden = !(me > 0 && joined);
+  note.className = "mute-note" + (live && m && isMine() ? " on" : "");
+  note.textContent = !live ? "Microphone off · tap the button to turn it on"
+    : m ? (isMine() ? "You are muted on your part · tap to unmute" : muteOverride === null ? "Muted: not your part · tap to talk anyway" : "Muted")
+    : isMine() ? "Mic on" : "Mic on out of turn · your chip lights up on the deck";
+}
+/* ---- camera: a round face on the deck's speaker chip. The phone sends small JPEG frames (CAM.fps a second,
+   CAM.size px square) through the WebSocket; the decks show them, the OBS deck records them with the slides. */
+const CAM = Object.assign({ fps: 15, size: 192, quality: 0.62 }, typeof RECCFG.camera === "object" ? RECCFG.camera : {});
+const CAM_ON = RECCFG.camera === true || (typeof RECCFG.camera === "object" && RECCFG.camera.enabled !== false);
+let cam = null, camWanted = true, camTimer = 0;
+const camCanvas = document.createElement("canvas");
+const camLive = () => !!(cam && cam.stream.getVideoTracks().some((t) => t.readyState === "live"));
+async function openCam() {
+  if (!CAM_ON || camLive()) return;
+  const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 480 }, height: { ideal: 480 }, frameRate: { ideal: 24, max: 30 } } });
+  const video = $("selfView");
+  video.srcObject = stream;
+  await video.play().catch(() => {});
+  cam = { stream, video };
+  stream.getVideoTracks().forEach((t) => t.addEventListener("ended", () => { applyCam(); report(); }));
+  startFrames(); applyCam();
+}
+function closeCam() {
+  if (!cam) return;
+  cam.stream.getTracks().forEach((t) => t.stop());
+  $("selfView").srcObject = null; cam = null; applyCam();
+}
+function startFrames() {
+  clearInterval(camTimer);
+  camCanvas.width = camCanvas.height = CAM.size;
+  const g = camCanvas.getContext("2d");
+  camTimer = setInterval(() => {
+    if (!camLive() || !camWanted || document.hidden || !sock || sock.readyState !== 1 || !me) return;
+    if (sock.bufferedAmount > 96 * 1024) return;     // a slow link: drop frames instead of piling them up
+    const v = cam.video, w = v.videoWidth, h = v.videoHeight;
+    if (!w || !h) return;
+    const side = Math.min(w, h);
+    g.drawImage(v, (w - side) / 2, (h - side) / 2, side, side, 0, 0, CAM.size, CAM.size);
+    sock.send(JSON.stringify({ type: "frame", part: me, t: Date.now(), data: camCanvas.toDataURL("image/jpeg", CAM.quality) }));
+  }, Math.round(1000 / Math.max(1, Math.min(30, CAM.fps))));
+}
+function applyCam() {
+  const b = $("camBtn");
+  if (!b) return;
+  b.hidden = !(CAM_ON && me > 0 && joined);
+  const live = camLive(), on = live && camWanted;
+  b.className = "cam" + (on ? " on" : !live ? " none" : " off");
+  b.querySelector("svg")?.remove();
+  b.insertAdjacentHTML("beforeend", on ? ICON_CAM : ICON_CAM_OFF);
+  $("selfView").style.visibility = on ? "visible" : "hidden";
+  b.setAttribute("aria-label", !live ? "Camera off. Tap to turn it on" : on ? "Camera on. Tap to turn it off" : "Camera off. Tap to turn it on");
+  // camera off: the track pauses (the deck shows the initials again)
+  if (cam) cam.stream.getVideoTracks().forEach((t) => { t.enabled = on; });
+}
+
+function renderTeam() {
+  const box = $("team");
+  if (!box) return;
+  box.hidden = !(joined || me === 0) || !TEAM.length;
+  $("micBtn").hidden = !(me > 0);
+  const turn = state && SCENES[state.index] ? SCENES[state.index].part : -1;
+  $("mates").innerHTML = "";
+  for (const p of TEAM) {
+    if (p.part === me) continue;
+    const el = document.createElement("div");
+    const kind = !p.online ? "gone" : !p.micOn ? "nomic" : p.muted ? "muted" : "live";
+    el.className = `mate ${kind}` + (p.part === turn ? " turn" : "") + (p.talking ? " talking" : "");
+    const face = document.createElement("span"); face.className = "face";
+    face.textContent = p.name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+    if (p.cam && thumbs[p.part]) { const im = document.createElement("img"); im.src = thumbs[p.part]; im.alt = ""; face.append(im); }
+    const badge = document.createElement("span"); badge.className = "badge"; badge.innerHTML = kind === "live" ? ICON_MIC : ICON_MIC_OFF;
+    face.append(badge); el.append(face);
+    const n = document.createElement("b"); n.textContent = p.name; el.append(n);
+    el.title = `${p.name}: ${kind === "gone" ? "not connected" : kind === "nomic" ? "microphone off" : kind === "muted" ? "muted" : p.talking ? "talking" : "mic on"}`;
+    $("mates").append(el);
+  }
+}
+function turnChanged() {
+  // a change of turn ends a manual override
+  if (muteOverride !== null && overrideFor !== isMine()) muteOverride = null;
+  applyMute();
+}
+
 const micLive = () => !!(mic && mic.stream.getAudioTracks().some((t) => t.readyState === "live"));
 async function openMic() {
   if (micLive()) { if (mic.ctx.state === "suspended") mic.ctx.resume().catch(() => {}); return mic; }
@@ -440,7 +581,14 @@ async function openMic() {
   const ctx = new (window.AudioContext || window.webkitAudioContext)();
   await ctx.resume().catch(() => {});
   const an = ctx.createAnalyser(); an.fftSize = 1024;
-  ctx.createMediaStreamSource(stream).connect(an);
+  // mute = gain 0: the level (speaker chip) and the recording go silent, but the recorder keeps running,
+  // so this phone's track stays in sync with the others in the mix
+  const gain = ctx.createGain();
+  gain.gain.value = micMuted() ? 0 : 1;
+  const out = ctx.createMediaStreamDestination ? ctx.createMediaStreamDestination() : null;
+  ctx.createMediaStreamSource(stream).connect(gain);
+  gain.connect(an);
+  if (out) gain.connect(out);
   const buf = new Float32Array(an.fftSize);
   let smooth = 0;
   const timer = setInterval(() => {
@@ -449,10 +597,12 @@ async function openMic() {
     const v = Math.min(1, Math.sqrt(sum / buf.length) * 7);
     smooth = v > smooth ? v : smooth * 0.82 + v * 0.18;
     $("lv").style.width = Math.round(smooth * 100) + "%";
-    if ((levelOn || recording()) && sock && sock.readyState === 1 && me) sock.send(JSON.stringify({ type: "level", part: me, v: Math.round(smooth * 100) / 100 }));
+    if (!micMuted()) $("micBtn").style.setProperty("--lv", Math.min(1, smooth * 1.6).toFixed(2));
+    if ((levelOn || recording()) && sock && sock.readyState === 1 && me) sock.send(JSON.stringify({ type: "level", part: me, v: micMuted() ? 0 : Math.round(smooth * 100) / 100 }));
   }, 100);
   stream.getAudioTracks().forEach((t) => t.addEventListener("ended", () => { render(); report(); }));
-  mic = { stream, ctx, timer };
+  mic = { stream, ctx, timer, gain, out };
+  applyMute();
   return mic;
 }
 function closeMic() {
@@ -460,6 +610,26 @@ function closeMic() {
   clearInterval(mic.timer); mic.stream.getTracks().forEach((t) => t.stop()); mic.ctx.close().catch(() => {});
   mic = null; $("lv").style.width = "0";
 }
+
+$("camBtn").onclick = async () => {
+  if (!camLive()) {
+    camWanted = true;
+    try { await openCam(); } catch (e) { showAlert("Camera blocked", "Allow the camera for this site (iPhone: aA → Website Settings; Android: the lock icon → Permissions), then tap the camera again.", "OK"); }
+  } else camWanted = !camWanted;
+  buzz(12); applyCam(); report();
+};
+$("micBtn").onclick = async () => {
+  if (!micLive()) {
+    // no microphone yet (or it stopped): the button turns it on, like the red warning
+    try { await openMic(); levelOn = true; } catch (e) { if (e && e.name === "NotAllowedError") micPerm = "denied"; }
+    if (recording() && !(recorder && recorder.state === "recording")) await startTake();
+    render(); report(); return;
+  }
+  muteOverride = !micMuted();
+  overrideFor = isMine();
+  buzz(12);
+  applyMute(); report();
+};
 
 // "I'm ready": the one tap. It asks for the microphone (needs this tap), turns on the level, keeps the screen on,
 // and confirms headphones + the call on the laptop (the line above the button).
@@ -469,6 +639,7 @@ $("ready").onclick = async () => {
   try {
     await openMic();
     levelOn = true; joined = true; buzz(30);
+    if (CAM_ON) { btn.textContent = "Allow the camera…"; await openCam().catch(() => {}); }
   } catch (e) {
     const name = e && e.name;
     if (name === "NotAllowedError") micPerm = "denied";
@@ -519,7 +690,10 @@ async function startTake() {
   const opts = { audioBitsPerSecond: Number(RECCFG.bitrate || 128000) };
   if (mime) opts.mimeType = mime;
   let r;
-  try { r = new MediaRecorder(mic.stream, opts); } catch { r = new MediaRecorder(mic.stream); }
+  // record the stream after the mute gain (falls back to the raw mic where a browser cannot record WebAudio)
+  const src = mic.out ? mic.out.stream : mic.stream;
+  try { r = new MediaRecorder(src, opts); }
+  catch { try { r = new MediaRecorder(src); } catch { r = new MediaRecorder(mic.stream); } }
   const t = { id: rid(), session: recSession, seq: 0, queue: [], bytes: 0, lastOk: 0, t0: null, mime: r.mimeType || mime || "", busy: false };
   take = t; recorder = r;
   r.ondataavailable = (e) => { if (e.data && e.data.size) { t.queue.push({ seq: t.seq++, blob: e.data }); pump(t); } };
@@ -620,6 +794,8 @@ document.addEventListener("visibilitychange", () => {
     return;
   }
   lock = null; wake();
+  // iPhone stops the camera in the background: back on the page, turn it on again
+  if (CAM_ON && joined && camWanted && cam && !camLive()) { closeCam(); openCam().catch(() => {}); }
   if (!sock || sock.readyState > 1) { retry = 0; connect(); }
   else if (sock.readyState === 1) send("hello");
   if (recording() && me && hiddenAt) {
@@ -656,7 +832,7 @@ function report() {
   sock.send(JSON.stringify({ type: "status", part: me,
     battery: battery ? Math.round(battery.level * 100) : null, charging: battery ? battery.charging : null,
     // "headphones" = the speaker tapped I'm ready under "Laptop on the call, headphones on"
-    mic: micPerm, micOn: micLive(), headphones: joined && levelOn,
+    mic: micPerm, micOn: micLive(), muted: micMuted(), cam: camLive() && camWanted, headphones: joined && levelOn,
     recording: !!(recorder && recorder.state === "recording"), hidden: document.visibilityState === "hidden",
     queue: take ? take.queue.length : 0, rtt: clock.rtt, offset: clock.offset, mime: take ? take.mime : pickMime() }));
 }
@@ -675,7 +851,6 @@ function press(cmd) {
 }
 $("fwd").onclick = () => press("next");
 $("back").onclick = () => press("prev");
-$("replay").onclick = () => send("replay");
 // a Bluetooth clicker or keyboard paired with the phone
 document.addEventListener("keydown", (e) => {
   if ($("talk").hidden || $("fwd").disabled) return;
@@ -719,6 +894,8 @@ function connect() {
     else if (m.type === "deck") deckOnline = m.online;
     else if (m.type === "scenes") { SCENES = m.scenes || []; if (m.speakers) SPEAKERS = m.speakers; flatten(); buildPicker(); wasMine = isMine(); }
     else if (m.type === "rec") onRec(m);
+    else if (m.type === "team") { TEAM = m.list || []; renderTeam(); return; }
+    else if (m.type === "thumb") { thumbs[m.part] = m.data; renderTeam(); return; }
     render();
   };
   s.onclose = () => {
