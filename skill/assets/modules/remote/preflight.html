@@ -140,9 +140,24 @@ const kb = (b) => b > 1e6 ? (b / 1e6).toFixed(1) + " MB" : Math.round(b / 1e3) +
 const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 const speakerReady = (x) => x.connected && x.mic === "granted" && x.micOn && x.headphones;
 
-/** One speaker → dot colour and one short line. */
+/** The speaker's camera: [a few words for the row, is it a problem]. Never blocks a take: the deck falls back to the initials. */
+const CAM_STALE_MS = 3000;
+function camInfo(x) {
+  if (!x.camera) return ["", false];
+  if (x.camera === "off") return ["camera off", false];
+  if (x.camera === "blocked") return ["camera blocked on the phone", true];
+  if (x.camera === "failed") return ["camera did not start", true];
+  if (x.camera === "stopped") return ["camera stopped: tap the camera on the phone", true];
+  if (x.camera === "waiting") return ["camera not started", true];
+  return x.camAgeMs == null || x.camAgeMs > CAM_STALE_MS ? ["no picture from the camera", true] : ["", false];
+}
+const camBad = (x) => x.connected && camInfo(x)[1];
+
+/** One speaker → dot colour and one short line. A camera problem turns a green row yellow. */
 function personState(x, recOn, rec, now) {
   if (!x.connected) return ["", "offline: not on the remote page", true];
+  const [camText, camWarn] = camInfo(x);
+  const cam = camText ? ` · ${camText}` : "", good = camWarn ? "warn" : "good";
   if (recOn) {
     if (x.hidden) return ["", "LEFT THE PAGE", true];
     // the phone reports its recorder a moment after the countdown starts
@@ -150,15 +165,15 @@ function personState(x, recOn, rec, now) {
     const age = x.lastChunkAgeMs;
     const since = rec.at ? now - rec.at : 0;
     // a chunk comes every ~5 s: older than 12 s means this phone stopped uploading
-    if (age == null) return since > 12000 ? ["", "nothing saved yet", true] : ["good", "recording"];
+    if (age == null) return since > 12000 ? ["", "nothing saved yet", true] : [good, "recording" + cam];
     if (age > 12000) return ["", `last save ${ago(age)}`, true];
-    return [age > 7000 ? "warn" : "good", `saved ${ago(age)} · ${kb(x.bytes)}`];
+    return [age > 7000 ? "warn" : good, `saved ${ago(age)} · ${kb(x.bytes)}${cam}`];
   }
   if (x.phones > 1) return ["warn", `${x.phones} phones on this part: close one`];
   if (x.mic === "denied") return ["", "microphone blocked on the phone", true];
   if (x.headphones && !x.micOn) return ["", "microphone stopped: tap the red bar on the phone", true];
   if (!speakerReady(x)) return ["warn", "connected: waiting for “I'm ready”"];
-  return ["good", x.takes ? `ready · ${x.takes} take${x.takes > 1 ? "s" : ""} saved` : "ready"];
+  return [good, (x.takes ? `ready · ${x.takes} take${x.takes > 1 ? "s" : ""} saved` : "ready") + cam];
 }
 
 function computeChecks(s) {
@@ -170,6 +185,8 @@ function computeChecks(s) {
     { ok: sp.every(speakerReady), req: true, text: "Every speaker tapped “I'm ready” (mic on, headphones)", note: sp.filter((x) => !speakerReady(x)).map((x) => x.name).join(", ") },
     { ok: s.scenes.count > 0 && !s.scenes.orphans.length, req: false, text: "Scenes and speakers", note: `${s.scenes.count} scenes (${s.scenes.source})${s.scenes.orphans.length ? ", no speaker: " + s.scenes.orphans.join(", ") : ""}` },
     { ok: sp.every((x) => x.battery == null || x.battery >= 30 || x.charging), req: false, text: "Phone batteries ≥ 30% or charging", note: sp.filter((x) => x.battery != null && x.battery < 30 && !x.charging).map((x) => `${x.name} ${x.battery}%`).join(", ") },
+    ...(sp.some((x) => x.camera) ? [{ ok: sp.every((x) => x.connected && !camBad(x)), req: false, text: "Phone cameras (faces on the slides)",
+      note: sp.filter((x) => !x.connected || camInfo(x)[0]).map((x) => `${x.name}: ${x.connected ? camInfo(x)[0] : "offline"}`).join(", ") }] : []),
     { ok: s.obs && s.obs.state === "connected", req: false, text: "OBS remote control (obs-websocket)", note: s.obs ? s.obs.state : "" },
     { ok: true, req: false, text: "Viewer decks", note: `${Math.max(0, s.decks.followers - s.decks.obs)} following the lead` },
     { ok: !!(s.helper && s.helper.online), req: false, text: "Auto-mix helper on this laptop", note: s.helper && s.helper.online ? "running" : "not running: mix with npm run mix" },
@@ -228,7 +245,9 @@ function render() {
     big = "MIX FAILED"; cls = "bad"; sub = mx.error || "see the helper log (remote/.run/helper.log)"; btn = "New take"; bcls = "start soft";
   } else if (!(s.lead.decks > 0)) {
     big = "LEAD DECK CLOSED"; cls = "bad"; sub = "Open it again: phones and Start drive the slides through it."; btn = "Open the lead deck"; bcls = "start";
-  } else if (ready) { big = "READY"; cls = "go"; sub = `All ${s.speakers.length} speakers ready.`; }
+  } else if (ready) { big = "READY"; cls = "go"; sub = `All ${s.speakers.length} speakers ready.`;
+    const noCam = s.speakers.filter(camBad);
+    if (noCam.length) sub += ` No camera: ${noCam.map((x) => x.name).join(", ")}.`; }
   else {
     big = waitingFor.length ? `WAITING FOR ${waitingFor.length}` : "NOT READY"; cls = "";
     sub = waitingFor.length ? waitingFor.map((x) => x.name).join(", ") : checks.filter((c) => c.req && !c.ok).map((c) => c.text).join(" · ");
@@ -280,6 +299,7 @@ function render() {
     if (isOpen) more.innerHTML = `
       <span>phone: ${x.connected ? (x.phones > 1 ? x.phones + " phones" : "connected") : "offline"}</span>
       <span>mic: ${esc(x.mic)}${x.micOn ? ", on" : ", off"}</span><span>ready tapped: ${x.headphones ? "yes" : "no"}</span>
+      ${x.camera ? `<span>${esc(camInfo(x)[0] || "camera: on")}</span>` : ""}
       <span>battery: ${x.battery == null ? "—" : x.battery + "%" + (x.charging ? " ⚡" : "")}</span>
       <span>rtt: ${x.rttMs == null ? "—" : x.rttMs + " ms"}</span><span>clock: ${x.clockOffsetMs == null ? "—" : x.clockOffsetMs + " ms"}</span>
       <span>recording: ${x.recording ? "yes" : "no"}${x.queue > 1 ? ` · ${x.queue} queued` : ""}</span>

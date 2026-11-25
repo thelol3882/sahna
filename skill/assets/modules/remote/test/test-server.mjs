@@ -37,7 +37,7 @@ writeFileSync(join(root, "src/scenes/index.ts"), `export const scenes = [
 ];`);
 for (const f of ["server.mjs", "remote.html", "preflight.html", "rec-overlay.js", "mix.py"]) copyFileSync(join(MOD, f), join(root, "remote", f));
 writeFileSync(join(root, "remote/config.json"), JSON.stringify({
-  title: "Test talk", port: 0, speakers: [{ part: 1, name: "Alex" }, { part: 2, name: "Sam" }], recording: { countdownMs: 300 },
+  title: "Test talk", port: 0, speakers: [{ part: 1, name: "Alex" }, { part: 2, name: "Sam" }], recording: { countdownMs: 300, camera: true },
 }));
 
 const PORT = 18000 + Math.floor(Math.random() * 1000);
@@ -243,6 +243,20 @@ let st = C.take("status").at(-1);
 assert.equal(st.lead.decks, 1); assert.equal(st.decks.obs, 1); assert.equal(st.decks.total, 4);
 assert.deepEqual(st.speakers.map((s) => [s.name, s.connected, s.mic, s.micOn, s.headphones, s.battery]),
   [["Alex", true, "granted", true, true, 81], ["Sam", true, "prompt", false, false, 15]]);
+{
+  let sp = st.speakers;
+  const cams = async () => { C.take("status"); await sleep(1200); sp = C.take("status").at(-1).speakers; return sp.map((s) => s.camera); };
+  assert.deepEqual(st.speakers.map((s) => s.camera), ["waiting", "waiting"], "no camera state from the phone yet");
+  const s1 = { type: "status", part: 1, battery: 81, charging: false, mic: "granted", micOn: true, headphones: true, recording: false, rtt: 40, offset: 0 };
+  const s2 = { type: "status", part: 2, battery: 15, mic: "prompt", micOn: false, headphones: false };
+  R1.json({ ...s1, cam: "on" }); R1.json({ type: "frame", part: 1, t: Date.now(), data: "data:image/jpeg;base64,AAAA" });
+  R2.json({ ...s2, cam: "blocked" });
+  assert.deepEqual(await cams(), ["on", "blocked"]);
+  assert.ok(sp[0].camAgeMs >= 0 && sp[0].camAgeMs < 3000, "age of the last frame");
+  R1.json({ ...s1, cam: "<b>" }); R2.json({ ...s2, cam: "off" });
+  assert.deepEqual(await cams(), ["waiting", "off"], "an unknown value is not passed on");
+  ok("console status: each phone's camera (on, off, blocked); unknown values dropped");
+}
 assert.deepEqual(st.media, ["clip.bin"]);
 assert.equal(st.consoles, 1); assert.equal(st.obs.state, "not-found"); assert.equal(st.starting, false);
 R1.json({ type: "level", part: 1, v: 0.3 }); await settle();

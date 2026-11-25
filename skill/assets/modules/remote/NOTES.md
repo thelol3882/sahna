@@ -86,8 +86,8 @@ Scenes, best first: `remote/scenes.json` (`[{id, title, speaker | part, notes: s
 | `scenes` *(new)* | lead deck → server | `scenes`, `speakers?` | optional manifest (see snippet) |
 | `scenes` *(new)* | server → phones | `scenes`, `speakers` | on connect and on change |
 | `ping` / `pong` *(new)* | phone → server → phone | `t` / `t`, `server` | clock offset NTP-style; also the phone's dead-socket check |
-| `status` *(new)* | phone → server | `part, battery, charging, mic, micOn, headphones, recording, hidden, queue, rtt, offset, mime` | every 3 s and on change |
-| `status` *(new)* | server → consoles | lead, decks, scenes, speakers (+ `lastChunkAgeMs`, `bytes`, `takes`), rec, media | 1/s |
+| `status` *(new)* | phone → server | `part, battery, charging, mic, micOn, cam (on\|off\|blocked\|failed\|stopped\|waiting), headphones, recording, hidden, queue, rtt, offset, mime` | every 3 s and on change |
+| `status` *(new)* | server → consoles | lead, decks, scenes, speakers (+ `lastChunkAgeMs`, `bytes`, `takes`, `camera`: null when cameras are off in the config, `camAgeMs`: age of the last frame), rec, media | 1/s |
 | `rec` *(new)* | console (or lead deck) → server | `action: start\|stop` | lead only |
 | `rec` *(new)* | server → phones, consoles, overlays | `state: idle\|countdown\|recording\|stopped`, `session`, `at`, `beepAt`, `countdownMs`, `beep?` | `beep: true` only to overlays, at the end of the countdown |
 | `rec-gap` *(new)* | phone → server | `part, state: hidden\|visible, at, offset, hiddenMs?, resumed` | logged in timeline.json, forwarded to consoles as `gap` |
@@ -152,7 +152,7 @@ Without it the server parses `src/scenes/index.ts` + `src/deck/config.ts` (teste
 ## Tests (headless Linux, no real phones or OBS)
 
 - `node --check` on all JS and the page scripts; `python -m py_compile start.py qr.py mix.py`.
-- `MIX_TEST=1 node remote/test/test-server.mjs`: 22 groups (the 19 before, plus `/api` auth + status, the helper API: mix waits for the last uploads then pending, progress to the console, open-folder job; Ctrl+R toggle from the lead overlay only; `voices.wav` on the video timeline).
+- `MIX_TEST=1 node remote/test/test-server.mjs`: 24 groups (the 19 before, camera frames and camera status, plus `/api` auth + status, the helper API: mix waits for the last uploads then pending, progress to the console, open-folder job; Ctrl+R toggle from the lead overlay only; `voices.wav` on the video timeline).
 - `node remote/test/test-obs.mjs`: 7 groups against `fake-obs.mjs`: SHA-256 auth, Browser source URL update, Start → StartRecord → OutputStarted → countdown, Stop → phones first → StopRecord → outputPath in timeline.json → mix pending, OBS already recording, StartRecord failing (no take, reason to the console), reconnect after an OBS restart, OBS gone (manual path), wrong password (4009) fixed live in config.json, no password, missing source, `obs: false`.
 - `node remote/test/test-parse.mjs .`: 3 groups (unchanged).
 - `node remote/test/test-start.mjs`: 10 groups, the npm commands in a throwaway project (node mode, fake cloudflared, fake OBS): record opens both pages + copies the message; record again reuses (same keys, same processes); after a killed server it cleans up and starts fresh; links; a take through OBS mixed by the helper by itself (onsets within 30 ms); Open folder; `npm run mix` / `-- --no-video`; stop kills server, tunnel, helper; nothing printed mentions python.
