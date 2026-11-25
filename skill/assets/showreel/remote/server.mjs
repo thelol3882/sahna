@@ -713,6 +713,8 @@ const maxPart = () => Math.max(SPEAKERS.length, ...SPEAKERS.map((s) => s.part), 
 const camAt = new Map();           // part -> last frame time
 const thumbAt = new Map();         // part -> last thumbnail sent to the phones
 const CAM_LIVE_MS = 2000;
+const CAM_CFG = CONFIG.recording?.camera;
+const CAM_ON = CAM_CFG === true || (!!CAM_CFG && typeof CAM_CFG === "object" && CAM_CFG.enabled !== false);
 function camLagMs() {
   const l = rec?.camLag;
   if (!l || l.length < 10) return null;
@@ -756,6 +758,8 @@ function statusMsg() {
     return {
       part: s.part, name: s.name, phones: mine.length, connected: !!i,
       battery: i?.battery ?? null, charging: i?.charging ?? null, mic: i?.mic ?? "unknown", micOn: !!i?.micOn,
+      // camera: what the phone says (null = cameras are off in the config); camAgeMs: when its last frame came
+      camera: CAM_ON ? (i?.cam ?? "waiting") : null, camAgeMs: i && camAt.has(s.part) ? now - camAt.get(s.part) : null,
       headphones: !!i?.headphones, recording: !!i?.recording, hidden: !!i?.hidden, queue: i?.queue ?? 0,
       rttMs: i?.rtt ?? null, clockOffsetMs: i?.offset ?? null, mime: i?.mime ?? null,
       takes: takes.length, bytes: takes.reduce((n, t) => n + t.bytes, 0), lastChunkAgeMs: last ? now - last : null,
@@ -905,6 +909,7 @@ server.on("upgrade", (req, socket, head) => {
           part: Number.isInteger(part) && part >= 0 ? part : 0, seenAt: Date.now(),
           battery: n(m.battery), charging: typeof m.charging === "boolean" ? m.charging : null,
           mic: ["granted", "denied", "prompt", "unknown"].includes(m.mic) ? m.mic : "unknown",
+          cam: ["on", "off", "blocked", "failed", "stopped", "waiting"].includes(m.cam) ? m.cam : "waiting",
           micOn: !!m.micOn, muted: !!m.muted, headphones: !!m.headphones, recording: !!m.recording, hidden: !!m.hidden,
           queue: n(m.queue) ?? 0, rtt: n(m.rtt), offset: n(m.offset), mime: typeof m.mime === "string" ? m.mime.slice(0, 60) : null,
         };

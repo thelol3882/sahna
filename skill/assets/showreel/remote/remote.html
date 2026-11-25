@@ -495,12 +495,17 @@ function applyMute() {
    CAM.size px square) through the WebSocket; the decks show them, the OBS deck records them with the slides. */
 const CAM = Object.assign({ fps: 15, size: 192, quality: 0.62 }, typeof RECCFG.camera === "object" ? RECCFG.camera : {});
 const CAM_ON = RECCFG.camera === true || (typeof RECCFG.camera === "object" && RECCFG.camera.enabled !== false);
-let cam = null, camWanted = true, camTimer = 0;
+let cam = null, camWanted = true, camTimer = 0, camErr = "";
 const camCanvas = document.createElement("canvas");
 const camLive = () => !!(cam && cam.stream.getVideoTracks().some((t) => t.readyState === "live"));
+// for the control page: off = the speaker turned it off; blocked, failed and stopped are problems
+const camState = () => !camWanted ? "off" : camLive() ? "on" : camErr || (cam ? "stopped" : "waiting");
 async function openCam() {
   if (!CAM_ON || camLive()) return;
-  const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 480 }, height: { ideal: 480 }, frameRate: { ideal: 24, max: 30 } } });
+  camErr = "";
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 480 }, height: { ideal: 480 }, frameRate: { ideal: 24, max: 30 } } }); }
+  catch (e) { camErr = e && e.name === "NotAllowedError" ? "blocked" : "failed"; throw e; }
   const video = $("selfView");
   video.srcObject = stream;
   await video.play().catch(() => {});
@@ -832,7 +837,7 @@ function report() {
   sock.send(JSON.stringify({ type: "status", part: me,
     battery: battery ? Math.round(battery.level * 100) : null, charging: battery ? battery.charging : null,
     // "headphones" = the speaker tapped I'm ready under "Laptop on the call, headphones on"
-    mic: micPerm, micOn: micLive(), muted: micMuted(), cam: camLive() && camWanted, headphones: joined && levelOn,
+    mic: micPerm, micOn: micLive(), muted: micMuted(), cam: camState(), headphones: joined && levelOn,
     recording: !!(recorder && recorder.state === "recording"), hidden: document.visibilityState === "hidden",
     queue: take ? take.queue.length : 0, rtt: clock.rtt, offset: clock.offset, mime: take ? take.mime : pickMime() }));
 }
